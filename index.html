@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>English with Daryna</title>
-<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -1376,24 +1376,32 @@ function confetti(){const c=$('cfc');c.innerHTML='';
     c.appendChild(p);}setTimeout(()=>c.innerHTML='',2800);}
 
 
+
 // ══════════════════════════════════════════════════
 // ════════ ONLINE MULTIPLAYER — PeerJS ════════════
 // ══════════════════════════════════════════════════
-// Protocol messages:
-//   {type:'deck', insts:[...]}       — send deck after both connected
-//   {type:'place', cellIdx, instIid} — place a card
-//   {type:'sync', board:[...]}       — full board sync after move
-//   {type:'ready'}                   — deck selected, ready to start
 
-let peer = null;          // PeerJS peer
-let peerConn = null;      // active DataConnection
-let onlineRole = null;    // 'host' or 'guest'
+let peer = null;
+let peerConn = null;
+let onlineRole = null;
 let onlineReady = {host:false, guest:false};
 let onlineHostDeck = null;
 let onlineGuestDeck = null;
 
+// PeerJS server options — using multiple fallbacks
+const PEER_CONFIG = {
+  debug: 0,
+  config: {
+    iceServers: [
+      {urls: 'stun:stun.l.google.com:19302'},
+      {urls: 'stun:stun1.l.google.com:19302'},
+      {urls: 'stun:global.stun.twilio.com:3478'},
+    ]
+  }
+};
+
 function genRoomCode(){
-  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code='';for(let i=0;i<4;i++)code+=chars[Math.floor(Math.random()*chars.length)];
   return code;
 }
@@ -1401,6 +1409,9 @@ function genRoomCode(){
 function openOnlineLobby(){
   $('modePicker').style.display='none';
   $('onlineLobby').style.display='flex';
+  resetLobbyUI();
+}
+function resetLobbyUI(){
   $('lobbyChoose').style.display='flex';
   $('lobbyJoinRow').style.display='none';
   $('lobbyCodeDisplay').style.display='none';
@@ -1408,164 +1419,278 @@ function openOnlineLobby(){
   $('lobbyError').style.display='none';
   $('lobbyStatus').textContent='Elige como quieres jugar';
 }
-
 function exitOnlineLobby(){
   destroyPeer();
   $('onlineLobby').style.display='none';
   $('modePicker').style.display='flex';
 }
-
 function destroyPeer(){
-  if(peerConn){try{peerConn.close();}catch(e){}}
-  if(peer){try{peer.destroy();}catch(e){}}
+  try{if(peerConn)peerConn.close();}catch(e){}
+  try{if(peer)peer.destroy();}catch(e){}
   peer=null; peerConn=null; onlineRole=null;
+  onlineReady={host:false,guest:false};
 }
-
+function setLobbyStatus(msg){$('lobbyStatus').textContent=msg;}
 function setLobbyError(msg){
   const el=$('lobbyError');el.textContent=msg;el.style.display='block';
-  setTimeout(()=>el.style.display='none',4000);
 }
 
-// ── CREATE ROOM (host) ──
+// ── CREATE ROOM ──
 function createOnlineRoom(){
   $('lobbyChoose').style.display='none';
-  $('lobbyStatus').textContent='Conectando...';
+  setLobbyStatus('Conectando al servidor...');
   onlineRole='host';
   const code=genRoomCode();
-  const peerId='ewd-'+code;
-  peer=new Peer(peerId,{debug:0});
-  peer.on('open',()=>{
+  const peerId='ewd-room-'+code;
+
+  try{
+    peer=new Peer(peerId, PEER_CONFIG);
+  }catch(e){
+    setLobbyError('Error al crear peer: '+e.message);
+    $('lobbyChoose').style.display='flex';
+    return;
+  }
+
+  // Timeout if server doesn't respond in 8 seconds
+  const openTimeout=setTimeout(()=>{
+    if(!peer||peer.disconnected){
+      setLobbyError('No se pudo conectar al servidor. Recarga e inténtalo de nuevo.');
+      $('lobbyChoose').style.display='flex';
+      destroyPeer();
+    }
+  },8000);
+
+  peer.on('open', id=>{
+    clearTimeout(openTimeout);
     $('lobbyBigCode').textContent=code;
     $('lobbyCodeDisplay').style.display='flex';
-    $('lobbyStatus').textContent='Comparte el codigo con tu rival';
+    setLobbyStatus('Sala creada. Esperando rival...');
   });
-  peer.on('connection',conn=>{
-    peerConn=conn;
-    setupConn();
-    $('lobbyCodeDisplay').style.display='none';
-    $('lobbyConnected').style.display='block';
-    $('lobbyStatus').textContent='Rival conectado! Eligiendo mazos...';
-    setTimeout(()=>{
-      $('onlineLobby').style.display='none';
-      battleMode='online';
-      deckSelBlue=[];deckSelRed=[];
-      showDeckPicker('blue');
-    },1000);
-  });
-  peer.on('error',e=>{
-    setLobbyError('Error: '+e.type+'. Prueba de nuevo.');
-    $('lobbyChoose').style.display='flex';
-    $('lobbyCodeDisplay').style.display='none';
-    destroyPeer();
-  });
-}
 
-// ── JOIN ROOM (guest) ──
-function showJoinInput(){
-  $('lobbyChoose').style.display='none';
-  $('lobbyJoinRow').style.display='flex';
-  $('joinCodeInput').focus();
-}
-function joinOnlineRoom(){
-  const code=$('joinCodeInput').value.trim().toUpperCase();
-  if(code.length!==4){setLobbyError('Introduce 4 letras');return;}
-  $('lobbyJoinRow').style.display='none';
-  $('lobbyStatus').textContent='Conectando con la sala '+code+'...';
-  onlineRole='guest';
-  peer=new Peer('ewd-guest-'+Date.now(),{debug:0});
-  peer.on('open',()=>{
-    peerConn=peer.connect('ewd-'+code,{reliable:true});
-    setupConn();
-    peerConn.on('open',()=>{
+  peer.on('connection', conn=>{
+    peerConn=conn;
+    setLobbyStatus('Rival encontrado! Conectando...');
+    conn.on('open',()=>{
+      // Send confirmation to guest
+      conn.send(JSON.stringify({type:'hello', role:'guest'}));
+      $('lobbyCodeDisplay').style.display='none';
       $('lobbyConnected').style.display='block';
-      $('lobbyStatus').textContent='Conectado! Eligiendo mazo...';
+      setLobbyStatus('Conectado! Eligiendo mazos...');
+      setupConn();
       setTimeout(()=>{
         $('onlineLobby').style.display='none';
         battleMode='online';
         deckSelBlue=[];deckSelRed=[];
-        showDeckPicker('blue'); // guest picks their deck (will be "red")
-      },1000);
+        showDeckPicker('blue');
+      },1200);
     });
-    peerConn.on('error',e=>setLobbyError('No se pudo conectar. Verifica el codigo.'));
+    conn.on('error', e=>setLobbyError('Error de conexion: '+e));
   });
-  peer.on('error',e=>{setLobbyError('Error: '+e.type);destroyPeer();$('lobbyChoose').style.display='flex';$('lobbyJoinRow').style.display='none';});
-}
 
-// ── CONNECTION SETUP ──
-function setupConn(){
-  peerConn.on('data',onlineReceive);
-  peerConn.on('close',()=>{
-    if($('battleArea').style.display!=='none'){
-      alert('El rival se ha desconectado.');goHome();
+  peer.on('disconnected',()=>{
+    if($('onlineLobby').style.display!=='none'){
+      setLobbyError('Desconectado del servidor. Reintentando...');
+      peer.reconnect();
+    }
+  });
+
+  peer.on('error', e=>{
+    clearTimeout(openTimeout);
+    let msg='Error: '+e.type;
+    if(e.type==='unavailable-id') msg='Codigo ocupado. Intentando con otro...';
+    if(e.type==='network') msg='Sin conexion a internet.';
+    if(e.type==='server-error') msg='Servidor no disponible. Recarga e intenta de nuevo.';
+    setLobbyError(msg);
+    if(e.type==='unavailable-id'){
+      // Try with a different code
+      setTimeout(()=>createOnlineRoom(),500);
+    }else{
+      $('lobbyChoose').style.display='flex';
+      $('lobbyCodeDisplay').style.display='none';
+      destroyPeer();
     }
   });
 }
 
+// ── JOIN ROOM ──
+function showJoinInput(){
+  $('lobbyChoose').style.display='none';
+  $('lobbyJoinRow').style.display='flex';
+  setTimeout(()=>$('joinCodeInput').focus(), 100);
+}
+
+function joinOnlineRoom(){
+  const code=$('joinCodeInput').value.trim().toUpperCase();
+  if(code.length!==4){setLobbyError('Introduce 4 caracteres');return;}
+  $('lobbyJoinRow').style.display='none';
+  $('lobbyError').style.display='none';
+  setLobbyStatus('Buscando sala '+code+'...');
+  onlineRole='guest';
+
+  // Guest creates its own peer with unique id
+  const guestId='ewd-guest-'+Date.now()+'-'+Math.floor(Math.random()*9999);
+
+  try{
+    peer=new Peer(guestId, PEER_CONFIG);
+  }catch(e){
+    setLobbyError('Error: '+e.message);
+    resetLobbyUI(); return;
+  }
+
+  const openTimeout=setTimeout(()=>{
+    setLobbyError('No se pudo conectar al servidor. Recarga.');
+    resetLobbyUI(); destroyPeer();
+  },8000);
+
+  peer.on('open', ()=>{
+    clearTimeout(openTimeout);
+    setLobbyStatus('Conectando con sala '+code+'...');
+
+    try{
+      peerConn=peer.connect('ewd-room-'+code, {reliable:true, serialization:'json'});
+    }catch(e){
+      setLobbyError('No se puede conectar: '+e.message);
+      resetLobbyUI(); destroyPeer(); return;
+    }
+
+    // Timeout if host doesn't respond in 10 seconds
+    const connTimeout=setTimeout(()=>{
+      if(!peerConn||!peerConn.open){
+        setLobbyError('La sala no existe o el anfitrion no responde. Verifica el codigo.');
+        resetLobbyUI(); destroyPeer();
+      }
+    },10000);
+
+    peerConn.on('open',()=>{
+      clearTimeout(connTimeout);
+      setLobbyStatus('Conexion establecida!');
+    });
+
+    peerConn.on('data', raw=>{
+      const msg=typeof raw==='string'?JSON.parse(raw):raw;
+      if(msg.type==='hello'){
+        // Host confirmed connection
+        $('lobbyConnected').style.display='block';
+        setLobbyStatus('Conectado! Eligiendo mazo...');
+        setupConn();
+        setTimeout(()=>{
+          $('onlineLobby').style.display='none';
+          battleMode='online';
+          deckSelBlue=[];deckSelRed=[];
+          showDeckPicker('blue');
+        },1200);
+      } else {
+        // Route to game handler
+        onlineReceive(typeof raw==='string'?raw:JSON.stringify(raw));
+      }
+    });
+
+    peerConn.on('error', e=>{
+      clearTimeout(connTimeout);
+      setLobbyError('No se pudo conectar. Verifica el codigo e intentalo de nuevo.');
+      resetLobbyUI(); destroyPeer();
+    });
+  });
+
+  peer.on('error', e=>{
+    clearTimeout(openTimeout);
+    let msg='Error: '+e.type;
+    if(e.type==='network') msg='Sin conexion a internet.';
+    if(e.type==='peer-unavailable') msg='Sala "'+code+'" no encontrada. Verifica el codigo.';
+    setLobbyError(msg);
+    resetLobbyUI(); destroyPeer();
+  });
+}
+
+// ── CONNECTION SETUP (after lobby) ──
+function setupConn(){
+  if(!peerConn) return;
+  peerConn.on('data', onlineReceive);
+  peerConn.on('close',()=>{
+    if($('battleArea').style.display!=='none'){
+      alert('El rival se ha desconectado.');
+      goHome();
+    }
+  });
+  peerConn.on('error', e=>console.warn('Conn error:',e));
+}
+
 // ── SEND / RECEIVE ──
 function onlineSend(msg){
-  if(peerConn&&peerConn.open) peerConn.send(JSON.stringify(msg));
+  if(peerConn&&peerConn.open){
+    try{peerConn.send(JSON.stringify(msg));}catch(e){console.warn('Send error',e);}
+  }
 }
 
 function onlineReceive(raw){
-  const msg=JSON.parse(raw);
+  let msg;
+  try{msg=typeof raw==='string'?JSON.parse(raw):raw;}catch(e){return;}
+
   if(msg.type==='rocks'){
     ROCKS=new Set(msg.rocks);
     board=Array(16).fill(null); ROCKS.forEach(i=>board[i]='rock');
     return;
   }
+  if(msg.type==='hello') return; // already handled above
+
   if(msg.type==='deck'){
-    // Opponent sent their deck instances
     if(onlineRole==='host'){
-      // guest sent deck → they are red
-      redInsts=msg.insts.map(d=>({...d,arrows:d.arrows}));
+      // Guest sent their deck — they are red
+      redInsts=msg.insts;
       onlineReady.guest=true;
     }else{
-      // host sent deck → they are blue
-      blueInsts=msg.insts.map(d=>({...d,arrows:d.arrows}));
+      // Host sent their deck — they are blue
+      blueInsts=msg.insts;
       onlineReady.host=true;
     }
     if(onlineReady.host&&onlineReady.guest) initOnlineBattle();
+    return;
   }
-  else if(msg.type==='place'){
-    // Opponent placed a card — find it in their hand and place it
-    const inst=redHand.find(c=>c.iid===msg.instIid)||(blueHand.find(c=>c.iid===msg.instIid));
-    if(!inst)return;
-    const team=onlineRole==='host'?'red':'blue'; // opponent's team
-    board[msg.cellIdx]={inst,team};
-    if(team==='red') redHand=redHand.filter(c=>c.iid!==inst.iid);
+
+  if(msg.type==='place'){
+    // Opponent placed a card
+    const oppTeam=onlineRole==='host'?'red':'blue';
+    const hand=oppTeam==='red'?redHand:blueHand;
+    const inst=hand.find(c=>c.iid===msg.instIid);
+    if(!inst) return;
+    board[msg.cellIdx]={inst, team:oppTeam};
+    if(oppTeam==='red') redHand=redHand.filter(c=>c.iid!==inst.iid);
     else blueHand=blueHand.filter(c=>c.iid!==inst.iid);
     renderBattle();
-    const events=computeCaptures(msg.cellIdx,team);
-    playBattleAnimations(events,msg.cellIdx,team,()=>{
-      applyCaptures(events,msg.cellIdx,team);
+    const events=computeCaptures(msg.cellIdx, oppTeam);
+    playBattleAnimations(events, msg.cellIdx, oppTeam, ()=>{
+      applyCaptures(events, msg.cellIdx, oppTeam);
       renderBattle();
       battleLocked=false;
       if(blueHand.length===0&&redHand.length===0){endBattle();return;}
-      currentTurn=onlineRole==='host'?'blue':'red'; // back to my turn
+      const myTeam=onlineRole==='host'?'blue':'red';
+      currentTurn=myTeam;
       renderBattle();
     });
   }
 }
 
+// ── INIT ONLINE BATTLE ──
 function initOnlineBattle(){
-  ROCKS=genRocks();
-  // Host determines rocks and sends them
+  // Host generates rocks and sends them to guest
   if(onlineRole==='host'){
-    onlineSend({type:'rocks',rocks:[...ROCKS]});
+    ROCKS=genRocks();
+    onlineSend({type:'rocks', rocks:[...ROCKS]});
   }
-  // Actual init is triggered after rocks are synced
-  // For simplicity: host picks rocks and both start simultaneously
-  board=Array(16).fill(null); ROCKS.forEach(i=>board[i]='rock');
-  blueHand=[...blueInsts].sort(()=>Math.random()-.5);
-  redHand=[...redInsts].sort(()=>Math.random()-.5);
-  // Host is blue, guest is red
-  currentTurn='blue';
-  selectedInst=null; battleLocked=false;
-  $('deckScreen').style.display='none'; $('battleArea').style.display='flex';
-  renderBattle();
+  // Small delay to ensure rocks message arrives before board init
+  setTimeout(()=>{
+    board=Array(16).fill(null); ROCKS.forEach(i=>board[i]='rock');
+    blueHand=[...blueInsts].sort(()=>Math.random()-.5);
+    redHand=[...redInsts].sort(()=>Math.random()-.5);
+    currentTurn='blue'; // host (blue) goes first
+    selectedInst=null; battleLocked=false;
+    $('deckScreen').style.display='none';
+    $('battleArea').style.display='flex';
+    renderBattle();
+  }, onlineRole==='host'?200:600);
 }
 
-// Modified confirmDeck for online mode
+// ── CONFIRM DECK ONLINE ──
 function confirmDeckOnline(){
   const myInsts=[...deckSelBlue];
   if(onlineRole==='host'){
@@ -1575,37 +1700,40 @@ function confirmDeckOnline(){
     redInsts=myInsts;
     onlineReady.guest=true;
   }
-  // Send deck to opponent
-  onlineSend({type:'deck', insts:myInsts.map(inst=>({
-    ...inst, img:inst.img?'':inst.img // skip img data to save bandwidth; opponent has same catalog
-  }))});
-  // Show waiting screen
+  // Send deck — strip img to save bandwidth, use baseId to reconstruct
+  onlineSend({type:'deck', insts:myInsts.map(inst=>{
+    // Find the card def to get the image
+    const def=CATALOG.find(c=>c.id===inst.baseId)||AI_PRESET.find(c=>c.id===inst.baseId);
+    return {
+      ...inst,
+      img: def?.img || inst.img || '',
+    };
+  })});
+  // Show waiting
   $('deckScreen').style.display='none';
-  // Show a waiting message in battle area
   $('battleArea').style.display='flex';
-  $('boardGrid').innerHTML='<div style="grid-column:1/5;display:flex;align-items:center;justify-content:center;height:200px;color:var(--muted);font-size:1rem;font-weight:700">Esperando al rival...</div>';
+  $('boardGrid').innerHTML='<div style="grid-column:1/5;grid-row:1/5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.8rem;height:300px"><div style="color:var(--mi);font-size:1rem;font-weight:700">Esperando que el rival elija su mazo...</div><div class="lobby-dots"><span></span><span></span><span></span></div></div>';
   $('handsArea').innerHTML='';
-  $('turnLabel').textContent='Esperando...';
+  $('scoreBlue').textContent='—'; $('scoreRed').textContent='—';
+  $('turnLabel').textContent='Preparando partida...';
 }
 
-// Hook into place for online sync
+// ── PLACE CARD ONLINE ──
 function placeCardOnline(cellIdx){
   if(!selectedInst||battleLocked)return;
-  // Check it's my turn
   const myTeam=onlineRole==='host'?'blue':'red';
   if(currentTurn!==myTeam)return;
   battleLocked=true;
-  const iid=selectedInst.iid;
-  board[cellIdx]={inst:selectedInst,team:myTeam};
+  const instIid=selectedInst.iid;
+  board[cellIdx]={inst:selectedInst, team:myTeam};
   if(myTeam==='blue') blueHand=blueHand.filter(c=>c.iid!==selectedInst.iid);
   else redHand=redHand.filter(c=>c.iid!==selectedInst.iid);
   selectedInst=null;
-  // Tell opponent
-  onlineSend({type:'place',cellIdx,instIid:iid});
+  onlineSend({type:'place', cellIdx, instIid});
   renderBattle();
-  const events=computeCaptures(cellIdx,myTeam);
-  playBattleAnimations(events,cellIdx,myTeam,()=>{
-    applyCaptures(events,cellIdx,myTeam);
+  const events=computeCaptures(cellIdx, myTeam);
+  playBattleAnimations(events, cellIdx, myTeam, ()=>{
+    applyCaptures(events, cellIdx, myTeam);
     renderBattle();
     battleLocked=false;
     if(blueHand.length===0&&redHand.length===0){endBattle();return;}
