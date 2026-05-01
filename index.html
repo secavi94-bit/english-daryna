@@ -664,15 +664,36 @@ function randomRarity(){
   const tot=RARITY_WEIGHTS.reduce((a,b)=>a+b,0);let r=Math.random()*tot;
   for(let i=0;i<RARITIES.length;i++){r-=RARITY_WEIGHTS[i];if(r<=0)return RARITIES[i];}return'common';
 }
+function compressImage(file, maxW, maxH, quality, cb){
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const img=new Image();
+    img.onload=()=>{
+      let w=img.width, h=img.height;
+      if(w>maxW||h>maxH){
+        const ratio=Math.min(maxW/w, maxH/h);
+        w=Math.round(w*ratio); h=Math.round(h*ratio);
+      }
+      const canvas=document.createElement('canvas');
+      canvas.width=w; canvas.height=h;
+      const ctx=canvas.getContext('2d');
+      ctx.drawImage(img,0,0,w,h);
+      cb(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
 function handleFiles(files){
   Array.from(files).forEach(f=>{
     if(pendingFiles.length>=10)return;
     const id='c'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
-    const reader=new FileReader();
-    reader.onload=e=>{
-      const item={id,name:f.name.replace(/\.[^.]+$/,'').replace(/[-_]/g,' '),rarity:randomRarity(),img:e.target.result};
-      pendingFiles.push(item);renderPending(item);checkGenBtn();
-    };reader.readAsDataURL(f);
+    // Compress to max 200x200 at 0.7 quality — enough for card display, tiny storage
+    compressImage(f, 200, 200, 0.72, compressed=>{
+      const item={id, name:f.name.replace(/\.[^.]+$/,'').replace(/[-_]/g,' '), rarity:randomRarity(), img:compressed};
+      pendingFiles.push(item); renderPending(item); checkGenBtn();
+    });
   });
 }
 function renderPending(item){
@@ -702,7 +723,17 @@ function checkGenBtn(){
   $('genBtn').disabled=pendingFiles.length<5;
   $('setupMsg').textContent=pendingFiles.length<5?`Faltan ${5-pendingFiles.length} imagen(es) más`:`${pendingFiles.length} cartas listas`;
 }
-function buildCollection(){if(pendingFiles.length<5){alert('Mínimo 5');return;}CATALOG=[...pendingFiles];saveCatalog();saveState();showHome();}
+function buildCollection(){
+  if(pendingFiles.length<5){alert('Mínimo 5 imágenes');return;}
+  CATALOG=[...pendingFiles];
+  try{
+    saveCatalog(); saveState();
+  }catch(e){
+    alert('Las imágenes ocupan demasiado espacio. Prueba con imágenes más pequeñas o menos imágenes.');
+    return;
+  }
+  showHome();
+}
 function showSetup(){showScreen('setupScreen');}
 
 // ══════════════════════ HOME ══════════════════════
