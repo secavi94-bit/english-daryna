@@ -1,0 +1,1589 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>English with Daryna</title>
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0a14;--surf:#141428;--card:#1a1a30;--deep:#07070f;
+  --txt:#f0f0f0;--muted:#6666aa;
+  --y:#FFD93D;--pu:#6C5CE7;--mi:#00CEC9;
+  --atk:#FFD93D;--noatk:#333355;
+  --blue:#3a8eff;--red:#ff4444;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;font-family:'Nunito',sans-serif;background:var(--bg);color:var(--txt);overflow-x:hidden}
+.screen{display:none;position:fixed;inset:0;z-index:10;overflow-y:auto;flex-direction:column}
+.screen.active{display:flex}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:.5rem;
+  padding:.55rem 1rem;background:rgba(7,7,15,.96);border-bottom:1px solid rgba(255,255,255,.07);
+  position:sticky;top:0;z-index:50;backdrop-filter:blur(12px);flex-shrink:0}
+.logo{font-family:'Fredoka One',cursive;font-size:1.1rem;color:var(--y)}
+.coins-pill{display:flex;align-items:center;gap:.3rem;background:rgba(255,217,61,.1);
+  border:1px solid rgba(255,217,61,.3);border-radius:30px;padding:.22rem .7rem;
+  font-weight:800;font-size:.88rem;color:var(--y)}
+.hud-back{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);
+  color:var(--txt);border-radius:7px;padding:.25rem .65rem;cursor:pointer;font-weight:700;font-size:.78rem}
+.page-body{flex:1;overflow-y:auto;padding:1rem 1rem 4rem;max-width:760px;margin:0 auto;width:100%}
+.slbl{font-family:'Fredoka One',cursive;font-size:1rem;color:var(--mi);margin-bottom:.75rem;display:flex;align-items:center;gap:.4rem}
+
+/* ════════════════════════════════════════
+   BATTLE CARD — border-grid arrow design
+   Card = 96×120px
+   Outer shell is a 3×3 CSS grid:
+     TL  TC  TR
+     ML [img] MR
+     BL  BC  BR
+   Each arrow zone is a colored strip/corner
+════════════════════════════════════════ */
+.bcard{
+  width:96px;height:120px;
+  display:grid;
+  grid-template-columns:18px 1fr 18px;
+  grid-template-rows:18px 1fr 18px;
+  border-radius:8px;overflow:hidden;
+  position:relative;flex-shrink:0;
+  transition:transform .15s,box-shadow .15s;
+  user-select:none;
+  background:#000;
+}
+/* Rarity outer glow */
+.bcard.r-common   {box-shadow:0 2px 8px rgba(0,0,0,.6)}
+.bcard.r-uncommon {box-shadow:0 0 10px rgba(42,170,106,.3)}
+.bcard.r-rare     {box-shadow:0 0 12px rgba(68,136,255,.35)}
+.bcard.r-epic     {box-shadow:0 0 14px rgba(155,89,182,.4)}
+.bcard.r-legendary{box-shadow:0 0 20px rgba(255,217,61,.55);animation:lgP 2.5s ease-in-out infinite}
+@keyframes lgP{0%,100%{box-shadow:0 0 20px rgba(255,217,61,.55)}50%{box-shadow:0 0 36px rgba(255,217,61,.85)}}
+
+/* Team outline */
+.bcard.team-blue{outline:3px solid var(--blue);outline-offset:1px}
+.bcard.team-red {outline:3px solid var(--red); outline-offset:1px}
+.bcard.selected {outline:3px solid var(--y);outline-offset:2px;transform:translateY(-6px) scale(1.06);box-shadow:0 8px 24px rgba(255,217,61,.4)!important}
+.bcard.placeable{animation:plAnim 1s ease-in-out infinite}
+@keyframes plAnim{0%,100%{background:#000}50%{background:#0a0a20}}
+
+/* Arrow zones — each is a colored cell in the 3×3 grid */
+.az{display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:900;line-height:1;transition:background .2s,color .2s}
+.az.on {background:var(--atk);color:#000;text-shadow:none}
+.az.off{background:var(--noatk);color:rgba(255,255,255,.2)}
+/* Corners get rounded inner corner */
+.az-TL{grid-column:1;grid-row:1;border-radius:6px 0 0 0}
+.az-TC{grid-column:2;grid-row:1;border-radius:0}
+.az-TR{grid-column:3;grid-row:1;border-radius:0 6px 0 0}
+.az-ML{grid-column:1;grid-row:2}
+.az-MR{grid-column:3;grid-row:2}
+.az-BL{grid-column:1;grid-row:3;border-radius:0 0 0 6px}
+.az-BC{grid-column:2;grid-row:3;border-radius:0}
+.az-BR{grid-column:3;grid-row:3;border-radius:0 0 6px 0}
+
+/* Center image cell */
+.bcard-center{grid-column:2;grid-row:2;position:relative;overflow:hidden}
+.bcard-center img{width:100%;height:100%;object-fit:cover;display:block}
+.bcard-center .emoji-fb{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;background:#0a0a1a}
+/* Name overlay at bottom of image */
+.bcard-center .bcard-name{position:absolute;bottom:0;left:0;right:0;
+  background:rgba(0,0,0,.75);font-size:.5rem;font-weight:800;padding:2px 3px;
+  text-align:center;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Score badge */
+.bcard-center .bcard-score{position:absolute;top:2px;right:2px;
+  background:rgba(0,0,0,.8);border-radius:4px;font-size:.5rem;font-weight:900;
+  padding:1px 3px;color:var(--y);line-height:1.2}
+
+/* face-down */
+.bcard.facedown .az{background:#1a1a30!important;color:transparent!important}
+.bcard.facedown .bcard-center{background:linear-gradient(135deg,#14142a,#0a0a18)}
+.bcard.facedown .bcard-center::after{content:'?';position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;font-size:2.2rem;
+  color:rgba(255,255,255,.12);font-family:'Fredoka One',cursive}
+.bcard.facedown .bcard-name,.bcard.facedown .bcard-score{display:none}
+
+/* lock overlay */
+.bcard .lock-ov{display:none;position:absolute;inset:0;background:rgba(0,0,0,.65);
+  align-items:center;justify-content:center;font-size:1.6rem;z-index:10;grid-column:1/4;grid-row:1/4}
+.bcard.locked .lock-ov{display:flex}
+
+/* dup badge */
+.bcard .dup-b{display:none;position:absolute;top:2px;left:2px;background:var(--y);color:#000;
+  font-size:.5rem;font-weight:900;border-radius:5px;padding:1px 4px;z-index:11}
+.bcard.hasdup .dup-b{display:block}
+
+/* rock cell */
+.rock-cell{width:96px;height:120px;border-radius:8px;
+  background:linear-gradient(135deg,#252525,#181818);
+  border:2px solid #333;display:flex;align-items:center;justify-content:center;
+  font-size:2rem;color:rgba(255,255,255,.25);flex-shrink:0}
+
+/* ════ SETUP ════ */
+#setupScreen{background:var(--bg)}
+.setup-body{max-width:680px;margin:0 auto;padding:1.5rem 1rem 5rem;width:100%}
+.setup-hero{text-align:center;margin-bottom:1.8rem}
+.setup-hero h1{font-family:'Fredoka One',cursive;font-size:clamp(1.8rem,5vw,2.8rem);color:var(--y);text-shadow:0 0 30px rgba(255,217,61,.4);line-height:1.15}
+.setup-hero p{color:var(--muted);margin-top:.4rem;font-size:.88rem}
+.upload-zone{border:2px dashed rgba(108,92,231,.35);border-radius:18px;padding:1.8rem;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:1.2rem;position:relative;background:rgba(108,92,231,.03)}
+.upload-zone:hover{border-color:var(--pu);background:rgba(108,92,231,.07)}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0}
+.upload-zone .uz-icon{font-size:2.4rem;display:block;margin-bottom:.4rem}
+.upload-zone strong{display:block;font-size:.95rem;color:var(--txt);margin-bottom:.2rem}
+.upload-zone p{color:var(--muted);font-size:.82rem}
+.pending-list{display:flex;flex-direction:column;gap:.7rem;margin-bottom:1.2rem}
+.pending-item{background:var(--card);border-radius:12px;padding:.8rem;display:flex;gap:.8rem;align-items:center;border:1px solid rgba(255,255,255,.07)}
+.pending-thumb{width:56px;height:56px;border-radius:8px;object-fit:cover;flex-shrink:0;border:2px solid rgba(255,255,255,.1)}
+.pending-fields{flex:1;display:flex;flex-direction:column;gap:.38rem}
+.pending-fields input{background:var(--deep);border:1px solid rgba(255,255,255,.12);border-radius:7px;padding:.32rem .65rem;color:var(--txt);font-family:'Nunito',sans-serif;font-size:.85rem;outline:none;width:100%}
+.pending-fields input:focus{border-color:var(--pu)}
+.pending-row{display:flex;gap:.45rem;align-items:center}
+.rarity-select{background:var(--deep);border:1px solid rgba(255,255,255,.12);border-radius:7px;padding:.32rem .55rem;color:var(--txt);font-family:'Nunito',sans-serif;font-size:.78rem;outline:none;cursor:pointer;flex:1}
+.reroll-btn{background:rgba(108,92,231,.2);border:1px solid rgba(108,92,231,.4);border-radius:7px;padding:.32rem .55rem;color:#a29bfe;font-size:.74rem;font-weight:700;cursor:pointer}
+.reroll-btn:hover{background:rgba(108,92,231,.35)}
+.remove-btn{background:rgba(255,100,80,.15);border:none;border-radius:7px;padding:.32rem .5rem;color:#ff7675;font-size:.78rem;cursor:pointer;flex-shrink:0}
+.gen-btn{width:100%;background:linear-gradient(135deg,#6C5CE7,#00CEC9);color:#fff;border:none;border-radius:12px;padding:.9rem;font-family:'Fredoka One',cursive;font-size:1.1rem;cursor:pointer;transition:opacity .2s,transform .15s;margin-top:.4rem}
+.gen-btn:hover{transform:scale(1.02)}.gen-btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.setup-msg{text-align:center;font-size:.8rem;color:var(--muted);margin-bottom:.6rem;min-height:1.1rem}
+
+/* ════ HOME ════ */
+#homeScreen{background:var(--bg)}
+.home-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:.8rem;margin-bottom:2rem}
+.home-card{background:var(--card);border-radius:14px;padding:1rem .75rem;text-align:center;cursor:pointer;border:2px solid transparent;transition:transform .2s,box-shadow .2s}
+.home-card:hover{transform:translateY(-4px);box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.home-card-icon{font-size:2.4rem;display:block;margin-bottom:.4rem}
+.home-card-name{font-weight:800;font-size:.84rem}
+.home-card-sub{font-size:.68rem;color:var(--muted);margin:.18rem 0}
+.home-card-rw{font-size:.7rem;color:var(--y);font-weight:700}
+.env-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(133px,1fr));gap:.8rem;margin-bottom:2rem}
+.env-card{border-radius:14px;padding:.9rem .7rem;text-align:center;cursor:pointer;border:2px solid transparent;transition:transform .2s}
+.env-card:hover{transform:translateY(-4px)}.env-card.locked{opacity:.35;cursor:not-allowed;pointer-events:none}
+.env-icon{font-size:2.5rem;display:block;margin-bottom:.35rem}
+.env-name{font-weight:800;font-size:.8rem}.env-price{font-size:.73rem;font-weight:700;margin-top:.18rem}
+.env-basic{background:linear-gradient(145deg,#2a2818,#1e1e0e);border-color:#FFD93D44}
+.env-normal{background:linear-gradient(145deg,#1a1430,#110e24);border-color:#6C5CE744}
+.env-premium{background:linear-gradient(145deg,#0a2428,#061c1e);border-color:#00CEC944}
+.env-special{background:linear-gradient(145deg,#2a0e1e,#1c0914);border-color:#FD79A844}
+.env-basic .env-name,.env-basic .env-price{color:#FFD93D}
+.env-normal .env-name,.env-normal .env-price{color:#a29bfe}
+.env-premium .env-name,.env-premium .env-price{color:#00CEC9}
+.env-special .env-name,.env-special .env-price{color:#FD79A8}
+.coll-wrap{display:flex;flex-wrap:wrap;gap:.7rem;margin-bottom:3rem}
+.coll-empty{width:100%;text-align:center;color:var(--muted);padding:2rem;font-size:.88rem}
+.coll-bar-bg{background:var(--surf);border-radius:8px;height:7px;overflow:hidden;margin-bottom:.3rem}
+.coll-bar-fill{height:100%;border-radius:8px;background:linear-gradient(90deg,var(--pu),var(--mi));transition:width .5s}
+.coll-pct{font-size:.75rem;color:var(--muted);text-align:right;margin-bottom:.8rem}
+
+/* ════ BATTLE ════ */
+#battleScreen{background:var(--bg)}
+.mode-picker{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.2rem;padding:2rem}
+.mode-picker h2{font-family:'Fredoka One',cursive;font-size:1.8rem;color:var(--y);text-align:center}
+.mode-btns{display:flex;gap:1rem;flex-wrap:wrap;justify-content:center}
+.mode-btn{border:none;border-radius:14px;padding:1rem 2rem;font-family:'Nunito',sans-serif;font-size:1rem;font-weight:800;cursor:pointer;transition:transform .18s;display:flex;flex-direction:column;align-items:center;gap:.3rem}
+.mode-btn:hover{transform:scale(1.07)}
+.mode-btn.vs-ai{background:linear-gradient(135deg,#1a1a6e,#3a3af0);color:#aad4ff}
+.mode-btn.vs-pvp{background:linear-gradient(135deg,#6e1a1a,#c0392b);color:#ffaaaa}
+.mode-sub{font-size:.78rem;opacity:.8}
+.deck-screen{flex:1;display:flex;flex-direction:column;align-items:center;gap:.8rem;padding:1rem;overflow-y:auto;width:100%}
+.deck-screen h2{font-family:'Fredoka One',cursive;font-size:1.4rem;color:var(--y)}
+.deck-screen p{color:var(--muted);font-size:.82rem;text-align:center}
+.deck-slots-row{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;margin:.3rem 0}
+.deck-slot-empty{width:96px;height:120px;border-radius:8px;background:var(--surf);border:2px dashed rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:rgba(255,255,255,.2)}
+.deck-avail{display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center;max-width:700px}
+.deck-avail .bcard{cursor:pointer}
+.deck-avail .bcard:hover{transform:translateY(-4px) scale(1.04)}
+.deck-start-btn{background:linear-gradient(135deg,var(--pu),var(--mi));color:#fff;border:none;border-radius:12px;padding:.8rem 2.5rem;font-family:'Fredoka One',cursive;font-size:1rem;cursor:pointer;transition:transform .15s}
+.deck-start-btn:hover{transform:scale(1.04)}.deck-start-btn:disabled{opacity:.35;cursor:not-allowed}
+.battle-area{flex:1;display:flex;flex-direction:column;align-items:center;gap:.6rem;padding:.5rem;overflow-y:auto}
+.score-bar{display:flex;align-items:center;gap:1rem;padding:.4rem 1rem;background:rgba(7,7,15,.9);border-radius:12px;font-weight:800;font-size:.9rem;width:100%;max-width:700px}
+.score-blue{color:var(--blue)}.score-red{color:var(--red)}
+.score-turn{flex:1;text-align:center;color:var(--y);font-size:.78rem}
+.board-outer{display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap;justify-content:center;width:100%;max-width:700px}
+.board-grid{display:grid;grid-template-columns:repeat(4,98px);grid-template-rows:repeat(4,122px);gap:5px}
+.board-cell{width:98px;height:122px;border-radius:9px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);position:relative;cursor:default;display:flex;align-items:center;justify-content:center}
+.board-cell.can-place{cursor:pointer;background:rgba(255,217,61,.06);border:2px dashed rgba(255,217,61,.4)}
+.board-cell.can-place:hover{background:rgba(255,217,61,.14);border-color:rgba(255,217,61,.7)}
+.board-cell-hint{color:rgba(255,255,255,.05);font-size:1.4rem;pointer-events:none}
+.board-cell .bcard{width:94px;height:118px;cursor:default}
+.board-cell .bcard:hover{transform:none}
+.hands-area{display:flex;gap:1.5rem;flex-wrap:wrap;justify-content:center;width:100%;max-width:700px}
+.hand-panel{display:flex;flex-direction:column;gap:.4rem;align-items:center}
+.hand-label{font-weight:800;font-size:.78rem;letter-spacing:.3px}
+.hand-label.blue{color:var(--blue)}.hand-label.red{color:var(--red)}
+.hand-cards-row{display:flex;gap:.4rem;flex-wrap:wrap;justify-content:center}
+.hand-cards-row .bcard.clickable{cursor:pointer}
+.hand-cards-row .bcard.clickable:hover{transform:translateY(-5px) scale(1.05)}
+.result-overlay{display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.88);backdrop-filter:blur(10px);align-items:center;justify-content:center;flex-direction:column;gap:.8rem;padding:1rem}
+.result-overlay.show{display:flex}
+.result-title{font-family:'Fredoka One',cursive;font-size:2.5rem;text-align:center}
+.result-title.win{color:var(--y);text-shadow:0 0 30px rgba(255,217,61,.6)}
+.result-title.lose{color:var(--red)}.result-title.draw{color:#a29bfe}
+.result-sub{color:var(--muted);font-size:.9rem;text-align:center}
+.pick-section{display:flex;flex-direction:column;align-items:center;gap:.5rem}
+.pick-label{font-family:'Fredoka One',cursive;font-size:.95rem;color:var(--mi)}
+.pick-row{display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center;max-width:600px}
+.pick-row .bcard{cursor:pointer}.pick-row .bcard:hover{transform:translateY(-5px) scale(1.06)}
+.result-btns{display:flex;gap:.8rem;flex-wrap:wrap;justify-content:center;margin-top:.3rem}
+.res-btn{border:none;border-radius:30px;padding:.6rem 1.5rem;font-family:'Nunito',sans-serif;font-size:.9rem;font-weight:800;cursor:pointer;transition:transform .15s}
+.res-btn:hover{transform:scale(1.05)}.res-btn.p{background:var(--pu);color:#fff}.res-btn.s{background:var(--surf);color:var(--txt)}
+.prize-bg{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.88);backdrop-filter:blur(10px);align-items:center;justify-content:center}
+.prize-bg.show{display:flex}
+.prize-box{background:var(--card);border:2px solid var(--pu);border-radius:22px;padding:1.8rem 1.5rem;text-align:center;max-width:300px;width:92%;animation:popIn .4s cubic-bezier(.34,1.56,.64,1)}
+@keyframes popIn{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
+.prize-box h2{font-family:'Fredoka One',cursive;font-size:1.4rem;color:var(--y)}
+.prize-card-center{display:flex;justify-content:center;margin:.8rem 0}
+.modal-sub{color:var(--muted);font-size:.82rem;margin:.5rem 0 .9rem}
+.btn-ok{background:var(--pu);color:#fff;border:none;border-radius:30px;padding:.55rem 2rem;font-family:'Nunito',sans-serif;font-size:.9rem;font-weight:800;cursor:pointer}
+.btn-ok:hover{background:#a29bfe}
+
+/* ════ MINIGAMES ════ */
+#miniScreen{background:var(--bg)}
+.diff-picker{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.3rem;padding:1.5rem}
+.diff-picker h2{font-family:'Fredoka One',cursive;font-size:1.6rem;color:var(--y);text-align:center}
+.diff-btns{display:flex;gap:.8rem;flex-wrap:wrap;justify-content:center}
+.diff-btn{border:none;border-radius:13px;padding:.9rem 1.7rem;font-family:'Nunito',sans-serif;font-size:.92rem;font-weight:800;cursor:pointer;transition:transform .18s;display:flex;flex-direction:column;align-items:center;gap:.2rem}
+.diff-btn:hover{transform:scale(1.07)}
+.diff-btn.easy{background:#1a472a;color:#55EFC4}.diff-btn.medium{background:#4a3000;color:#FFD93D}.diff-btn.hard{background:#4a0a0a;color:#ff7675}
+.drw{font-size:.72rem;opacity:.8}
+.canvas-area{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:.7rem;overflow:hidden}
+.canvas-wrap{position:relative;width:100%;max-width:520px}
+.game-hud-bar{display:flex;align-items:center;gap:.7rem;padding:.4rem .75rem;background:rgba(7,7,15,.97);border-radius:10px 10px 0 0;flex-wrap:wrap}
+.hs{font-size:.82rem;font-weight:800}.hs span{color:var(--y)}
+#gameCanvas{width:100%;height:auto;border:2px solid rgba(255,255,255,.06);border-radius:0 0 10px 10px;display:block}
+.mole-area{flex:1;display:flex;flex-direction:column;align-items:center;padding:.5rem}
+.mole-hud{display:flex;gap:.7rem;flex-wrap:wrap;padding:.4rem .75rem;background:rgba(7,7,15,.97);border-radius:10px;margin-bottom:.75rem;width:100%;max-width:420px}
+#moleGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:.7rem;width:100%;max-width:420px}
+.mhole{aspect-ratio:1;border-radius:50%;background:var(--deep);border:3px solid var(--surf);display:flex;align-items:center;justify-content:center;font-size:2.4rem;cursor:pointer;user-select:none}
+.mhole.active{background:var(--surf);animation:mUp .15s ease-out}
+@keyframes mUp{from{transform:scale(.3)}to{transform:scale(1)}}
+.mhole.hit{animation:mHit .18s}
+@keyframes mHit{0%{transform:scale(1.3)}100%{transform:scale(1)}}
+.go-overlay{display:none;position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.84);backdrop-filter:blur(8px);align-items:center;justify-content:center}
+.go-overlay.show{display:flex}
+.go-box{background:var(--card);border:2px solid var(--pu);border-radius:20px;padding:1.8rem 1.5rem;text-align:center;max-width:290px;width:90%;animation:popIn .4s cubic-bezier(.34,1.56,.64,1)}
+.go-box h2{font-family:'Fredoka One',cursive;font-size:1.5rem;color:var(--y)}
+.go-earned{font-size:1.3rem;font-weight:800;color:var(--mi);margin:.4rem 0}
+.go-score{font-size:.82rem;color:var(--muted);margin-bottom:.8rem}
+.go-btns{display:flex;gap:.7rem;justify-content:center;flex-wrap:wrap}
+.go-btn{border:none;border-radius:30px;padding:.5rem 1.3rem;font-family:'Nunito',sans-serif;font-size:.85rem;font-weight:800;cursor:pointer;transition:transform .15s}
+.go-btn:hover{transform:scale(1.05)}.go-btn.p{background:var(--pu);color:#fff}.go-btn.s{background:var(--surf);color:var(--txt)}
+.cfc{position:fixed;inset:0;pointer-events:none;z-index:500;overflow:hidden}
+.cp{position:absolute;top:-20px;border-radius:2px;animation:cff linear forwards}
+@keyframes cff{to{transform:translateY(110vh) rotate(720deg);opacity:0}}
+
+/* ════ BATTLE ANIMATIONS ════ */
+/* Arrow zone flash — glows when involved in combat */
+.az.flash-atk{animation:azFlash .4s ease-out}
+@keyframes azFlash{0%{filter:brightness(1)}40%{filter:brightness(3) saturate(2);transform:scale(1.3)}100%{filter:brightness(1);transform:scale(1)}}
+.az.flash-def{animation:azFlashDef .4s ease-out}
+@keyframes azFlashDef{0%{filter:brightness(1)}40%{filter:brightness(2.5) hue-rotate(180deg);transform:scale(1.3)}100%{filter:brightness(1);transform:scale(1)}}
+
+/* Card combat pop */
+.bcard.combat-win{animation:combatWin .5s cubic-bezier(.34,1.56,.64,1)}
+@keyframes combatWin{0%{transform:scale(1)}40%{transform:scale(1.25)}70%{transform:scale(.95)}100%{transform:scale(1)}}
+.bcard.combat-lose{animation:combatLose .45s ease-out}
+@keyframes combatLose{0%{transform:scale(1)}30%{transform:scale(1.1) rotate(-3deg)}60%{transform:scale(.85) rotate(3deg)}100%{transform:scale(1) rotate(0)}}
+.bcard.combat-direct{animation:directCap .4s ease-out}
+@keyframes directCap{0%{transform:scale(1)}50%{transform:scale(1.15)}100%{transform:scale(1)}}
+.bcard.chain-flash{animation:chainFlash .35s ease-out}
+@keyframes chainFlash{0%{outline-width:3px;outline-color:rgba(255,217,61,1)}50%{outline-width:6px;outline-color:rgba(255,217,61,1);transform:scale(1.12)}100%{outline-width:3px;transform:scale(1)}}
+
+/* Floating score number */
+.float-num{position:absolute;font-family:'Fredoka One',cursive;font-size:1.1rem;font-weight:900;
+  pointer-events:none;z-index:99;white-space:nowrap;
+  animation:floatUp .9s ease-out forwards}
+@keyframes floatUp{0%{opacity:1;transform:translateY(0) scale(1)}60%{opacity:1;transform:translateY(-36px) scale(1.2)}100%{opacity:0;transform:translateY(-60px) scale(.8)}}
+
+/* Battle overlay popup */
+.battle-popup{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  z-index:80;background:rgba(7,7,15,.96);border:2px solid var(--pu);border-radius:18px;
+  padding:1.2rem 2rem;text-align:center;pointer-events:none;
+  animation:bPopIn .3s cubic-bezier(.34,1.56,.64,1)}
+@keyframes bPopIn{from{transform:translate(-50%,-50%) scale(.3);opacity:0}to{transform:translate(-50%,-50%) scale(1);opacity:1}}
+.battle-popup h3{font-family:'Fredoka One',cursive;font-size:1.4rem}
+.battle-popup .bp-scores{display:flex;gap:1.5rem;align-items:center;justify-content:center;margin:.4rem 0;font-size:1rem;font-weight:800}
+.battle-popup .bp-result{font-size:.85rem;color:var(--muted);margin-top:.2rem}
+
+/* ════ SAVED DECKS ════ */
+.saved-decks-section{width:100%;max-width:700px;display:flex;flex-direction:column;gap:.5rem;margin-bottom:.5rem}
+.saved-decks-label{font-family:'Fredoka One',cursive;font-size:.95rem;color:var(--y);display:flex;align-items:center;gap:.4rem}
+.saved-decks-row{display:flex;gap:.5rem;flex-wrap:wrap}
+.saved-deck-btn{background:var(--surf);border:1px solid rgba(255,255,255,.1);border-radius:10px;
+  padding:.4rem .75rem;font-family:'Nunito',sans-serif;font-size:.78rem;font-weight:700;
+  color:var(--txt);cursor:pointer;display:flex;align-items:center;gap:.4rem;transition:background .15s,border-color .15s}
+.saved-deck-btn:hover{background:rgba(108,92,231,.2);border-color:var(--pu)}
+.saved-deck-btn.empty{opacity:.4;border-style:dashed}
+.saved-deck-btn .sd-del{color:#ff7675;font-size:.7rem;margin-left:.2rem;padding:0 2px}
+.save-deck-row{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+.save-deck-input{background:var(--deep);border:1px solid rgba(255,255,255,.15);border-radius:8px;
+  padding:.35rem .65rem;color:var(--txt);font-family:'Nunito',sans-serif;font-size:.82rem;outline:none;flex:1;min-width:120px}
+.save-deck-input:focus{border-color:var(--pu)}
+.save-deck-btn{background:rgba(0,206,201,.15);border:1px solid rgba(0,206,201,.35);border-radius:8px;
+  padding:.35rem .75rem;color:var(--mi);font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap}
+.save-deck-btn:hover{background:rgba(0,206,201,.3)}
+
+/* ONLINE MODE */
+.mode-btn.vs-online{background:linear-gradient(135deg,#004d40,#00897b);color:#a7ffeb}
+.online-lobby{flex:1;display:flex;align-items:center;justify-content:center;padding:1rem}
+.lobby-box{background:var(--card);border:2px solid var(--pu);border-radius:22px;padding:2rem 1.5rem;
+  text-align:center;max-width:340px;width:95%;display:flex;flex-direction:column;align-items:center;gap:.7rem}
+.lobby-box h2{font-family:'Fredoka One',cursive;font-size:1.6rem;color:var(--y)}
+.lobby-status{color:var(--muted);font-size:.85rem}
+.lobby-choose{display:flex;gap:.8rem;flex-wrap:wrap;justify-content:center}
+.lobby-btn{border:none;border-radius:12px;padding:.7rem 1.6rem;font-family:'Nunito',sans-serif;
+  font-size:.95rem;font-weight:800;cursor:pointer;transition:transform .15s}
+.lobby-btn:hover{transform:scale(1.05)}
+.lobby-btn.create{background:linear-gradient(135deg,var(--pu),var(--mi));color:#fff}
+.lobby-btn.join{background:linear-gradient(135deg,#c0392b,#e74c3c);color:#fff}
+.lobby-join-row{display:flex;gap:.6rem;align-items:center;justify-content:center}
+.lobby-code-input{background:var(--deep);border:2px solid var(--pu);border-radius:10px;
+  padding:.5rem;color:var(--txt);font-family:'Fredoka One',cursive;font-size:1.8rem;
+  text-align:center;width:110px;letter-spacing:.2rem;outline:none}
+.lobby-code-input:focus{border-color:var(--mi)}
+.lobby-code-display{display:flex;flex-direction:column;align-items:center;gap:.3rem}
+.lobby-label{font-size:.8rem;color:var(--muted)}
+.lobby-big-code{font-family:'Fredoka One',cursive;font-size:3rem;color:var(--y);
+  letter-spacing:.3rem;text-shadow:0 0 20px rgba(255,217,61,.5)}
+.lobby-dots{display:flex;gap:.4rem;margin-top:.2rem}
+.lobby-dots span{width:8px;height:8px;border-radius:50%;background:var(--pu);
+  animation:dotPulse 1.2s ease-in-out infinite}
+.lobby-dots span:nth-child(2){animation-delay:.2s}
+.lobby-dots span:nth-child(3){animation-delay:.4s}
+@keyframes dotPulse{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
+.lobby-error{color:#ff7675;font-size:.82rem;font-weight:700;background:rgba(255,100,80,.1);
+  border-radius:8px;padding:.4rem .8rem}
+</style>
+</head>
+<body>
+<div class="cfc" id="cfc"></div>
+<div class="prize-bg" id="prizeModal">
+  <div class="prize-box">
+    <h2 id="pmTitle">¡Carta encontrada!</h2>
+    <div class="prize-card-center" id="pmCardWrap"></div>
+    <p class="modal-sub" id="pmSub"></p>
+    <button class="btn-ok" onclick="closePrize()">Continuar →</button>
+  </div>
+</div>
+<div class="go-overlay" id="goOverlay">
+  <div class="go-box">
+    <h2>¡Tiempo!</h2>
+    <div class="go-earned" id="goEarned">+0 🪙</div>
+    <div class="go-score" id="goScore"></div>
+    <div class="go-btns">
+      <button class="go-btn p" onclick="retryMini()">🔄 Repetir</button>
+      <button class="go-btn s" onclick="goHome()">🏠 Inicio</button>
+    </div>
+  </div>
+</div>
+<div class="result-overlay" id="resultOverlay">
+  <div class="result-title" id="resultTitle"></div>
+  <div class="result-sub" id="resultSub"></div>
+  <div class="pick-section" id="pickSection" style="display:none">
+    <div class="pick-label">Elige una carta para tu colección</div>
+    <div class="pick-row" id="pickRow"></div>
+  </div>
+  <div class="result-btns" id="resultBtns"></div>
+</div>
+
+<!-- SETUP -->
+<div class="screen active" id="setupScreen">
+  <div class="topbar"><span class="logo">✦ English with Daryna</span></div>
+  <div class="setup-body">
+    <div class="setup-hero"><h1>✦ English with Daryna</h1><p>Sube imágenes · Crea cartas · Juega al Card Battle</p></div>
+    <div class="upload-zone"><input type="file" id="fileInput" accept="image/*" multiple onchange="handleFiles(this.files)"><span class="uz-icon">🖼️</span><strong>Arrastra imágenes o haz clic</strong><p>5–10 imágenes · JPG PNG WebP</p></div>
+    <div class="pending-list" id="pendingList"></div>
+    <p class="setup-msg" id="setupMsg">Sube al menos 5 imágenes</p>
+    <button class="gen-btn" id="genBtn" disabled onclick="buildCollection()">✦ Crear Colección</button>
+  </div>
+</div>
+
+<!-- HOME -->
+<div class="screen" id="homeScreen">
+  <div class="topbar">
+    <span class="logo">✦ English with Daryna</span>
+    <div style="display:flex;gap:.4rem;align-items:center">
+      <button class="hud-back" onclick="showSetup()">⚙ Cartas</button>
+      <div class="coins-pill">🪙 <span id="coinsHome">0</span></div>
+    </div>
+  </div>
+  <div class="page-body">
+    <p class="slbl">⚔ Actividades</p>
+    <div class="home-grid" id="homeGrid"></div>
+    <p class="slbl">📦 Sobres</p>
+    <div class="env-grid" id="envGrid"></div>
+    <p class="slbl">✦ Mi Colección</p>
+    <div class="coll-bar-bg"><div class="coll-bar-fill" id="collBar" style="width:0%"></div></div>
+    <div class="coll-pct" id="collPct"></div>
+    <div class="coll-wrap" id="collWrap"></div>
+  </div>
+</div>
+
+<!-- BATTLE -->
+<div class="screen" id="battleScreen">
+  <div class="topbar">
+    <button class="hud-back" onclick="exitBattle()">← Inicio</button>
+    <span class="logo" style="font-size:.85rem">⚔ Card Battle</span>
+    <div class="coins-pill">🪙 <span id="coinsBattle">0</span></div>
+  </div>
+  <div class="mode-picker" id="modePicker">
+    <h2>&#9876; Card Battle</h2>
+    <div class="mode-btns">
+      <button class="mode-btn vs-ai"  onclick="startBattleFlow('ai')">&#129302; vs IA<span class="mode-sub">Tu vs la IA</span></button>
+      <button class="mode-btn vs-pvp" onclick="startBattleFlow('pvp')">&#128101; PvP Local<span class="mode-sub">2 jugadores, 1 pantalla</span></button>
+      <button class="mode-btn vs-online" onclick="openOnlineLobby()">&#128241; Online<span class="mode-sub">Cada uno en su movil</span></button>
+    </div>
+  </div>
+  <div class="online-lobby" id="onlineLobby" style="display:none">
+    <div class="lobby-box">
+      <h2 id="lobbyTitle">Jugar Online</h2>
+      <p id="lobbyStatus" class="lobby-status">Elige como quieres jugar</p>
+      <div id="lobbyChoose" class="lobby-choose">
+        <button class="lobby-btn create" onclick="createOnlineRoom()">Crear Sala</button>
+        <button class="lobby-btn join"   onclick="showJoinInput()">Unirse a Sala</button>
+      </div>
+      <div id="lobbyJoinRow" class="lobby-join-row" style="display:none">
+        <input id="joinCodeInput" class="lobby-code-input" maxlength="4" placeholder="ABCD" oninput="this.value=this.value.toUpperCase()">
+        <button class="lobby-btn join" onclick="joinOnlineRoom()">Entrar</button>
+      </div>
+      <div id="lobbyCodeDisplay" class="lobby-code-display" style="display:none">
+        <div class="lobby-label">Comparte este codigo:</div>
+        <div class="lobby-big-code" id="lobbyBigCode"></div>
+        <div class="lobby-label" style="font-size:.75rem;margin-top:.3rem">Esperando al rival...</div>
+        <div class="lobby-dots"><span></span><span></span><span></span></div>
+      </div>
+      <div id="lobbyConnected" style="display:none;text-align:center;color:#55EFC4;font-weight:800;font-size:1rem;margin:.5rem 0">Conectado!</div>
+      <div id="lobbyError" class="lobby-error" style="display:none"></div>
+      <button class="hud-back" style="margin-top:.8rem" onclick="exitOnlineLobby()">Volver</button>
+    </div>
+  </div>
+  <div class="deck-screen" id="deckScreen" style="display:none">
+    <h2 id="deckTitle">Elige tu Mazo</h2>
+    <p id="deckDesc">Selecciona exactamente <strong>5 cartas</strong></p>
+    <!-- Saved decks -->
+    <div class="saved-decks-section" id="savedDecksSect">
+      <div class="saved-decks-label">💾 Mazos guardados</div>
+      <div class="saved-decks-row" id="savedDecksRow"></div>
+      <div class="save-deck-row" id="saveDeckRow" style="display:none">
+        <input class="save-deck-input" id="saveDeckName" placeholder="Nombre del mazo..." maxlength="24">
+        <button class="save-deck-btn" onclick="saveDeckConfirm()">💾 Guardar</button>
+        <button class="save-deck-btn" style="background:rgba(255,100,80,.12);border-color:rgba(255,100,80,.3);color:#ff7675" onclick="$('saveDeckRow').style.display='none'">✕</button>
+      </div>
+    </div>
+    <div class="deck-slots-row" id="deckSlotsRow"></div>
+    <div style="font-size:.8rem;color:var(--muted);align-self:flex-start;padding-left:.5rem">Tu colección:</div>
+    <div class="deck-avail" id="deckAvail"></div>
+    <div style="display:flex;gap:.6rem;flex-wrap:wrap;justify-content:center">
+      <button class="save-deck-btn" onclick="showSaveDeckInput()" id="showSaveBtn" style="display:none">💾 Guardar mazo actual</button>
+      <button class="deck-start-btn" id="deckStartBtn" disabled onclick="confirmDeck()">⚔ Continuar</button>
+    </div>
+  </div>
+  <div class="battle-area" id="battleArea" style="display:none">
+    <div class="score-bar">
+      <span class="score-blue">🔵 <span id="scoreBlue">0</span></span>
+      <span class="score-turn" id="turnLabel">—</span>
+      <span class="score-red"><span id="scoreRed">0</span> 🔴</span>
+    </div>
+    <div class="board-outer">
+      <div class="board-grid" id="boardGrid"></div>
+    </div>
+    <div class="hands-area" id="handsArea"></div>
+  </div>
+</div>
+
+<!-- MINIGAME -->
+<div class="screen" id="miniScreen">
+  <div class="topbar">
+    <button class="hud-back" onclick="goHome()">← Inicio</button>
+    <div class="coins-pill">🪙 <span id="coinsMini">0</span></div>
+  </div>
+  <div class="diff-picker" id="diffPicker">
+    <h2 id="diffTitle">Elige dificultad</h2>
+    <div class="diff-btns">
+      <button class="diff-btn easy"   onclick="startMini('easy')">😊 Fácil<span class="drw">+<span id="drE">0</span>🪙</span></button>
+      <button class="diff-btn medium" onclick="startMini('medium')">😤 Medio<span class="drw">+<span id="drM">0</span>🪙</span></button>
+      <button class="diff-btn hard"   onclick="startMini('hard')">💀 Difícil<span class="drw">+<span id="drH">0</span>🪙</span></button>
+    </div>
+  </div>
+  <div class="canvas-area" id="canvasArea" style="display:none">
+    <div class="canvas-wrap">
+      <div class="game-hud-bar">
+        <span class="hs">⏱ <span id="hTime">30</span>s</span>
+        <span class="hs">⭐ <span id="hScore">0</span></span>
+        <span class="hs">❤️ <span id="hLives">3</span></span>
+        <span style="flex:1"></span>
+        <span class="hs" style="color:var(--y)">🪙 <span id="hCoins">0</span></span>
+      </div>
+      <canvas id="gameCanvas" width="520" height="460"></canvas>
+    </div>
+  </div>
+  <div class="mole-area" id="moleArea" style="display:none">
+    <div class="mole-hud">
+      <span class="hs">⏱ <span id="mTime">30</span>s</span>
+      <span class="hs">⭐ <span id="mScore">0</span></span>
+      <span style="flex:1"></span>
+      <span class="hs" style="color:var(--y)">🪙 <span id="mCoins">0</span></span>
+    </div>
+    <div id="moleGrid"></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════ CONSTANTS ══════════════════════
+const RARITIES=['common','uncommon','rare','epic','legendary'];
+const RARITY_WEIGHTS=[45,28,17,7,3];
+const RARITY_LABEL={common:'Common',uncommon:'Uncommon',rare:'Rare',epic:'Epic',legendary:'Legendary'};
+const RARITY_SCORE={common:2,uncommon:3,rare:5,epic:8,legendary:13};
+
+// 8 arrow slots
+const SLOTS=['TL','TC','TR','ML','MR','BL','BC','BR'];
+const ARROW_CHAR={TL:'↖',TC:'↑',TR:'↗',ML:'←',MR:'→',BL:'↙',BC:'↓',BR:'↘'};
+
+// Given a placement direction from cell A to cell B,
+// which slot on A faces B, and which slot on B faces A
+const DIR_FACING={
+  right:    {a:'MR', b:'ML'},
+  left:     {a:'ML', b:'MR'},
+  down:     {a:'BC', b:'TC'},
+  up:       {a:'TC', b:'BC'},
+  downright:{a:'BR', b:'TL'},
+  downleft: {a:'BL', b:'TR'},
+  upright:  {a:'TR', b:'BL'},
+  upleft:   {a:'TL', b:'BR'},
+};
+
+const AI_PRESET=[
+  {id:'ai1',name:'Shadow Wolf', emoji:'🐺',rarity:'uncommon'},
+  {id:'ai2',name:'Fire Drake',  emoji:'🐉',rarity:'rare'},
+  {id:'ai3',name:'Stone Golem', emoji:'🗿',rarity:'common'},
+  {id:'ai4',name:'Void Wraith', emoji:'👻',rarity:'epic'},
+  {id:'ai5',name:'Thunder Bird',emoji:'⚡',rarity:'uncommon'},
+  {id:'ai6',name:'Ice Spider',  emoji:'🕷️',rarity:'rare'},
+  {id:'ai7',name:'Iron Knight', emoji:'⚔️',rarity:'common'},
+  {id:'ai8',name:'Lava Titan',  emoji:'🌋',rarity:'epic'},
+  {id:'ai9',name:'Moon Serpent',emoji:'🌙',rarity:'legendary'},
+  {id:'ai10',name:'Wind Dancer',emoji:'🌀',rarity:'uncommon'},
+];
+
+// ══════════════════════ STATE ══════════════════════
+let STATE={coins:100,owned:{}};
+let CATALOG=[];
+let pendingFiles=[];
+
+function loadAll(){
+  try{const s=JSON.parse(localStorage.getItem('ewd7')||'{}');if(s.coins!=null)STATE=s;
+    const c=JSON.parse(localStorage.getItem('ewd7_cat')||'[]');if(c.length)CATALOG=c;}catch(e){}
+}
+function saveState(){localStorage.setItem('ewd7',JSON.stringify(STATE));}
+function saveCatalog(){localStorage.setItem('ewd7_cat',JSON.stringify(CATALOG));}
+loadAll();
+
+function $(id){return document.getElementById(id)}
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$(id).classList.add('active')}
+function updateCoins(){['coinsHome','coinsBattle','coinsMini'].forEach(id=>{const el=$(id);if(el)el.textContent=STATE.coins;})}
+
+// ══════════════════════ ARROW / INSTANCE HELPERS ══════════════════════
+function genArrows(rarity){
+  const minA={common:2,uncommon:3,rare:4,epic:5,legendary:6}[rarity]||2;
+  const maxA={common:4,uncommon:5,rare:6,epic:7,legendary:8}[rarity]||4;
+  const count=minA+Math.floor(Math.random()*(maxA-minA+1));
+  const shuffled=[...SLOTS].sort(()=>Math.random()-.5);
+  const active=new Set(shuffled.slice(0,count));
+  const a={};SLOTS.forEach(s=>a[s]=active.has(s));return a;
+}
+function makeInstance(def){
+  return{...def, baseId:def.id,
+    iid:def.id+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,5),
+    arrows:genArrows(def.rarity)};
+}
+function instanceScore(inst){
+  return (RARITY_SCORE[inst.rarity]||2)*((STATE.owned[inst.baseId]?.count)||1)
+        + Object.values(inst.arrows).filter(Boolean).length;
+}
+
+// ══════════════════════ CARD RENDERER ══════════════════════
+// Uses CSS grid 3×3 where corners+edges are arrow zones and center is the image
+function buildCard(inst, opts={}){
+  // opts: {team, facedown, selected, size, locked, showDup}
+  const div=document.createElement('div');
+  let cls='bcard r-'+inst.rarity;
+  if(opts.team)  cls+=' team-'+opts.team;
+  if(opts.facedown) cls+=' facedown';
+  if(opts.selected) cls+=' selected';
+  if(opts.locked)   cls+=' locked';
+  div.className=cls;
+
+  if(opts.size){
+    // Scale: default is 96×120. Keep 4:5 ratio
+    const w=opts.size;
+    const h=Math.round(w*1.25);
+    div.style.width=w+'px';div.style.height=h+'px';
+    // Scale arrow zones proportionally
+    const az=Math.round(w*0.19)+'px';
+    div.style.gridTemplateColumns=az+' 1fr '+az;
+    div.style.gridTemplateRows=az+' 1fr '+az;
+  }
+
+  // Arrow zones (8 around the center)
+  const zoneOrder=['TL','TC','TR','ML',null,'MR','BL','BC','BR'];
+  zoneOrder.forEach(slot=>{
+    if(!slot){
+      // center cell — image
+      const center=document.createElement('div');center.className='bcard-center';
+      if(inst.emoji||!inst.img){
+        const ef=document.createElement('div');ef.className='emoji-fb';ef.textContent=inst.emoji||'🃏';
+        center.appendChild(ef);
+      } else {
+        const im=document.createElement('img');im.src=inst.img;im.alt=inst.name;im.loading='lazy';
+        center.appendChild(im);
+      }
+      // Score badge only (no name)
+      if(!opts.facedown){
+        const sc=document.createElement('div');sc.className='bcard-score';sc.textContent=instanceScore(inst);center.appendChild(sc);
+      }
+      div.appendChild(center);
+    } else {
+      const az=document.createElement('div');
+      az.className='az az-'+slot+' '+((!opts.facedown&&inst.arrows?.[slot])?'on':'off');
+      if(!opts.facedown) az.textContent=ARROW_CHAR[slot];
+      div.appendChild(az);
+    }
+  });
+
+  // Lock overlay
+  if(opts.locked){
+    const lk=document.createElement('div');lk.className='lock-ov';lk.textContent='🔒';div.appendChild(lk);
+  }
+  // Dup badge
+  if(opts.showDup){
+    const cnt=(STATE.owned[inst.baseId]?.count)||0;
+    if(cnt>1){div.classList.add('hasdup');const db=document.createElement('div');db.className='dup-b';db.textContent='×'+cnt;div.appendChild(db);}
+  }
+
+  return div;
+}
+
+// ══════════════════════ SETUP ══════════════════════
+function randomRarity(){
+  const tot=RARITY_WEIGHTS.reduce((a,b)=>a+b,0);let r=Math.random()*tot;
+  for(let i=0;i<RARITIES.length;i++){r-=RARITY_WEIGHTS[i];if(r<=0)return RARITIES[i];}return'common';
+}
+function handleFiles(files){
+  Array.from(files).forEach(f=>{
+    if(pendingFiles.length>=10)return;
+    const id='c'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const item={id,name:f.name.replace(/\.[^.]+$/,'').replace(/[-_]/g,' '),rarity:randomRarity(),img:e.target.result};
+      pendingFiles.push(item);renderPending(item);checkGenBtn();
+    };reader.readAsDataURL(f);
+  });
+}
+function renderPending(item){
+  const list=$('pendingList');
+  const div=document.createElement('div');div.className='pending-item';div.id='pi_'+item.id;
+  div.innerHTML=`<img class="pending-thumb" src="${item.img}" alt="">
+    <div class="pending-fields">
+      <input type="text" value="${item.name}" placeholder="Nombre en inglés" oninput="updPending('${item.id}','name',this.value)">
+      <div class="pending-row">
+        <select class="rarity-select" onchange="updPending('${item.id}','rarity',this.value)">
+          ${RARITIES.map(r=>`<option value="${r}"${r===item.rarity?' selected':''}>${RARITY_LABEL[r]}</option>`).join('')}
+        </select>
+        <button class="reroll-btn" onclick="rerollPending('${item.id}')">🎲</button>
+        <button class="remove-btn" onclick="removePending('${item.id}')">✕</button>
+      </div>
+    </div>`;
+  list.appendChild(div);
+}
+function updPending(id,f,v){const it=pendingFiles.find(x=>x.id===id);if(it)it[f]=v;}
+function rerollPending(id){
+  const it=pendingFiles.find(x=>x.id===id);if(!it)return;
+  it.rarity=randomRarity();
+  const el=$('pi_'+id);if(el)el.querySelector('select').value=it.rarity;
+}
+function removePending(id){pendingFiles=pendingFiles.filter(f=>f.id!==id);const el=$('pi_'+id);if(el)el.remove();checkGenBtn();}
+function checkGenBtn(){
+  $('genBtn').disabled=pendingFiles.length<5;
+  $('setupMsg').textContent=pendingFiles.length<5?`Faltan ${5-pendingFiles.length} imagen(es) más`:`${pendingFiles.length} cartas listas`;
+}
+function buildCollection(){if(pendingFiles.length<5){alert('Mínimo 5');return;}CATALOG=[...pendingFiles];saveCatalog();saveState();showHome();}
+function showSetup(){showScreen('setupScreen');}
+
+// ══════════════════════ HOME ══════════════════════
+const ACTIVITIES=[
+  {id:'battle',icon:'⚔️',name:'Card Battle',sub:'Juega con tus cartas',rw:'Gana cartas enemigas',col:'#6C5CE744'},
+  {id:'catch', icon:'🪣',name:'Atrapa Monedas',sub:'Recoge monedas',rw:'🪙 15–55',col:'#FFD93D44'},
+  {id:'space', icon:'🚀',name:'Space Shooter',sub:'Destruye asteroides',rw:'🪙 20–70',col:'#6C5CE744'},
+  {id:'mole',  icon:'🔨',name:'Whack-a-Mole',sub:'Golpea los topos',rw:'🪙 15–55',col:'#00CEC944'},
+  {id:'dodge', icon:'⚡',name:'Esquiva',sub:'Evita obstáculos',rw:'🪙 15–60',col:'#FD79A844'},
+];
+const MINI_DEF={catch:{rewards:{easy:15,medium:30,hard:55}},space:{rewards:{easy:20,medium:40,hard:70}},mole:{rewards:{easy:15,medium:30,hard:55}},dodge:{rewards:{easy:15,medium:35,hard:60}}};
+const ENVELOPES=[
+  {id:'e1',cls:'env-basic',  icon:'📨',name:'Básico',  price:0,free:true},
+  {id:'e2',cls:'env-normal', icon:'📩',name:'Normal',  price:20},
+  {id:'e3',cls:'env-premium',icon:'💌',name:'Premium', price:45,boost:true},
+  {id:'e4',cls:'env-special',icon:'💎',name:'Especial',price:80,guaranteed:'rare'}
+];
+const DRAW_W={common:55,uncommon:25,rare:13,epic:5,legendary:2};
+
+function showHome(){showScreen('homeScreen');renderHome();}
+function goHome(){stopMini();showHome();}
+
+function renderHome(){
+  updateCoins();
+  const hg=$('homeGrid');hg.innerHTML='';
+  ACTIVITIES.forEach(a=>{
+    const d=document.createElement('div');d.className='home-card';d.style.borderColor=a.col;
+    d.innerHTML=`<span class="home-card-icon">${a.icon}</span><div class="home-card-name">${a.name}</div><div class="home-card-sub">${a.sub}</div><div class="home-card-rw">${a.rw}</div>`;
+    d.onclick=()=>a.id==='battle'?openBattle():openMini(a.id);hg.appendChild(d);
+  });
+  const eg=$('envGrid');eg.innerHTML='';
+  ENVELOPES.forEach(env=>{
+    const locked=!env.free&&STATE.coins<env.price;
+    const d=document.createElement('div');d.className='env-card '+env.cls+(locked?' locked':'');
+    d.innerHTML=`<span class="env-icon">${env.icon}</span><div class="env-name">${env.name}</div><div class="env-price">${env.free?'🎁 Gratis':env.price+' 🪙'}</div>`;
+    if(!locked)d.onclick=()=>openEnvelope(env.id);eg.appendChild(d);
+  });
+  renderColl();
+}
+function renderColl(){
+  const cw=$('collWrap');cw.innerHTML='';
+  if(!CATALOG.length){cw.innerHTML='<div class="coll-empty">Ve a ⚙ Cartas para crear tu colección</div>';return;}
+  const sorted=[...CATALOG].sort((a,b)=>RARITIES.indexOf(a.rarity)-RARITIES.indexOf(b.rarity));
+  let owned=0;
+  sorted.forEach(card=>{
+    const o=STATE.owned[card.id],isOwned=o&&o.count>0;if(isOwned)owned++;
+    const inst=makeInstance(card);
+    const el=buildCard(inst,{showDup:true,locked:!isOwned,size:88});
+    cw.appendChild(el);
+  });
+  const pct=CATALOG.length?Math.round(owned/CATALOG.length*100):0;
+  $('collBar').style.width=pct+'%';$('collPct').textContent=owned+' / '+CATALOG.length+' cartas ('+pct+'%)';
+}
+
+// Envelopes
+function drawCardDef(boost,guaranteed){
+  if(!CATALOG.length)return null;
+  let pool=[...CATALOG];
+  if(guaranteed){const gi=RARITIES.indexOf(guaranteed);const p2=pool.filter(c=>RARITIES.indexOf(c.rarity)<=gi);if(p2.length)pool=p2;}
+  const W={...DRAW_W};if(boost){W.rare+=10;W.epic+=5;W.legendary+=3;W.common-=18;}
+  const tot=pool.reduce((a,c)=>a+(W[c.rarity]||1),0);let r=Math.random()*tot;
+  for(const c of pool){r-=(W[c.rarity]||1);if(r<=0)return c;}return pool[pool.length-1];
+}
+function openEnvelope(envId){
+  if(!CATALOG.length){alert('Primero crea tu colección');return;}
+  const env=ENVELOPES.find(e=>e.id===envId);if(!env)return;
+  if(!env.free&&STATE.coins<env.price){alert('¡Necesitas más monedas!');return;}
+  if(!env.free)STATE.coins-=env.price;
+  const card=drawCardDef(env.boost,env.guaranteed);if(!card)return;
+  if(!STATE.owned[card.id])STATE.owned[card.id]={count:0};
+  STATE.owned[card.id].count++;
+  let bonus=0;
+  if(STATE.owned[card.id].count>1){bonus={legendary:15,epic:8,rare:4,uncommon:2,common:1}[card.rarity]||1;STATE.coins+=bonus;}
+  saveState();renderHome();
+  const inst=makeInstance(card);showPrize(inst,bonus);
+  if(card.rarity==='epic'||card.rarity==='legendary')confetti();
+}
+function showPrize(inst,bonus){
+  const t={common:'¡Carta encontrada!',uncommon:'¡Poco Común!',rare:'✦ ¡Rara!',epic:'✦ ¡Épica!',legendary:'✦ ¡LEGENDARIA!'};
+  $('pmTitle').textContent=t[inst.rarity]||'¡Carta!';
+  const w=$('pmCardWrap');w.innerHTML='';w.appendChild(buildCard(inst,{size:120}));
+  $('pmSub').textContent=bonus>0?`¡Duplicado! +${bonus} 🪙`:'¡Nueva carta añadida!';
+  $('prizeModal').classList.add('show');
+}
+function closePrize(){$('prizeModal').classList.remove('show');}
+
+// ══════════════════════════════════════════════════
+// ══════════════ CARD BATTLE GAME ══════════════════
+// ══════════════════════════════════════════════════
+let battleMode=null;
+let blueInsts=[], redInsts=[];
+let board=[];
+let blueHand=[], redHand=[];
+let selectedInst=null;
+let currentTurn='blue';
+let pvpPhase=1;
+let deckSelBlue=[], deckSelRed=[];
+let battleLocked=false;
+
+// ── SAVED DECKS (max 3) ──
+function loadSavedDecks(){return JSON.parse(localStorage.getItem('ewd_decks')||'[]');}
+function saveSavedDecksLS(d){localStorage.setItem('ewd_decks',JSON.stringify(d));}
+
+function renderSavedDecksRow(forTeam){
+  const row=$('savedDecksRow'); if(!row)return; row.innerHTML='';
+  const decks=loadSavedDecks();
+  decks.forEach((d,i)=>{
+    const btn=document.createElement('button'); btn.className='saved-deck-btn';
+    const nameSpan=document.createElement('span'); nameSpan.textContent='📋 '+d.name;
+    const delSpan=document.createElement('span'); delSpan.className='sd-del'; delSpan.textContent=' ✕';
+    delSpan.onclick=(e)=>{e.stopPropagation();deleteSavedDeck(i);};
+    btn.appendChild(nameSpan); btn.appendChild(delSpan);
+    btn.onclick=()=>loadSavedDeck(d,forTeam);
+    row.appendChild(btn);
+  });
+  if(decks.length<3){
+    const empty=document.createElement('button'); empty.className='saved-deck-btn empty';
+    empty.textContent='+ Guardar mazo'; empty.onclick=()=>showSaveDeckInput();
+    row.appendChild(empty);
+  }
+}
+function showSaveDeckInput(){
+  const sel=deckSelBlue.length>=5?deckSelBlue:deckSelRed;
+  if(sel.length<5){alert('Selecciona 5 cartas primero');return;}
+  $('saveDeckRow').style.display='flex'; $('saveDeckName').focus();
+}
+function saveDeckConfirm(){
+  const name=$('saveDeckName').value.trim();
+  if(!name){alert('Ponle un nombre al mazo');return;}
+  const sel=deckSelBlue.length>=5?deckSelBlue:deckSelRed;
+  if(sel.length<5){alert('Selecciona 5 cartas primero');return;}
+  const decks=loadSavedDecks();
+  if(decks.length>=3){alert('Ya tienes 3 mazos guardados. Borra uno primero.');return;}
+  decks.push({name, cardIds:sel.map(c=>c.baseId)});
+  saveSavedDecksLS(decks);
+  $('saveDeckRow').style.display='none'; $('saveDeckName').value='';
+  renderSavedDecksRow($('deckStartBtn').dataset.forTeam||'blue');
+}
+function deleteSavedDeck(idx){
+  const decks=loadSavedDecks(); decks.splice(idx,1); saveSavedDecksLS(decks);
+  renderSavedDecksRow($('deckStartBtn').dataset.forTeam||'blue');
+}
+function loadSavedDeck(deck,forTeam){
+  const owned=ownedCards();
+  const sel=forTeam==='blue'?deckSelBlue:deckSelRed;
+  sel.length=0;
+  deck.cardIds.forEach(id=>{
+    const card=owned.find(c=>c.id===id);
+    if(card) sel.push(makeInstance(card));
+  });
+  showDeckPicker(forTeam);
+}
+
+// ── RANDOM ROCKS ──
+function genRocks(){
+  const count=1+Math.floor(Math.random()*6);
+  const cells=[...Array(16).keys()];
+  for(let i=cells.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[cells[i],cells[j]]=[cells[j],cells[i]];}
+  return new Set(cells.slice(0,count));
+}
+let ROCKS=new Set();
+
+function openBattle(){
+  if(!CATALOG.length){alert('Primero crea tu coleccion con al menos 5 cartas');return;}
+  $('modePicker').style.display='flex';$('deckScreen').style.display='none';$('battleArea').style.display='none';
+  $('resultOverlay').classList.remove('show');showScreen('battleScreen');
+}
+function exitBattle(){stopMini();goHome();}
+
+function startBattleFlow(mode){
+  battleMode=mode;pvpPhase=1;deckSelBlue=[];deckSelRed=[];
+  $('modePicker').style.display='none';showDeckPicker('blue');
+}
+function ownedCards(){return CATALOG.filter(c=>STATE.owned[c.id]&&STATE.owned[c.id].count>0);}
+
+function showDeckPicker(forTeam){
+  const owned=ownedCards();
+  if(owned.length<5){alert('Necesitas al menos 5 cartas. Abre sobres!');$('deckScreen').style.display='none';$('modePicker').style.display='flex';return;}
+  $('deckScreen').style.display='flex';
+  const sel=forTeam==='blue'?deckSelBlue:deckSelRed;
+  $('deckTitle').textContent=battleMode==='pvp'?(forTeam==='blue'?'Jugador Azul - Mazo':'Jugador Rojo - Mazo'):'Tu Mazo';
+  $('deckStartBtn').disabled=sel.length<5;
+  $('deckStartBtn').dataset.forTeam=forTeam;
+  const ssb=$('showSaveBtn'); if(ssb) ssb.style.display=sel.length>=5?'inline-block':'none';
+  renderSavedDecksRow(forTeam);
+  renderDeckSlots(sel);
+  const avail=$('deckAvail');avail.innerHTML='';
+  owned.forEach(card=>{
+    const isSelected=sel.some(s=>s.baseId===card.id);
+    const previewInst=makeInstance(card);
+    const el=buildCard(previewInst,{size:90,selected:isSelected});
+    el.onclick=()=>toggleDeckCard(card,forTeam);
+    avail.appendChild(el);
+  });
+}
+function renderDeckSlots(sel){
+  const row=$('deckSlotsRow');row.innerHTML='';
+  for(let i=0;i<5;i++){
+    if(sel[i]){
+      const el=buildCard(sel[i],{size:90});
+      const idx=i; el.style.cursor='pointer';
+      el.onclick=()=>{sel.splice(idx,1);showDeckPicker($('deckStartBtn').dataset.forTeam);};
+      row.appendChild(el);
+    }else{
+      const em=document.createElement('div');em.className='deck-slot-empty';em.textContent='+';row.appendChild(em);
+    }
+  }
+}
+function toggleDeckCard(card,forTeam){
+  const sel=forTeam==='blue'?deckSelBlue:deckSelRed;
+  const idx=sel.findIndex(s=>s.baseId===card.id);
+  if(idx>=0){sel.splice(idx,1);}
+  else{if(sel.length>=5)return; sel.push(makeInstance(card));}
+  showDeckPicker(forTeam);
+}
+function confirmDeck(){
+  const forTeam=$('deckStartBtn').dataset.forTeam;
+  // ONLINE mode
+  if(battleMode==='online'){
+    confirmDeckOnline();return;
+  }
+  // PvP local
+  if(battleMode==='pvp'&&forTeam==='blue'&&pvpPhase===1){pvpPhase=2;showDeckPicker('red');return;}
+  blueInsts=[...deckSelBlue];
+  if(battleMode==='ai'){
+    const shuffled=[...AI_PRESET].sort(()=>Math.random()-.5).slice(0,5);
+    redInsts=shuffled.map(c=>makeInstance({...c,isAI:true}));
+  }else{redInsts=[...deckSelRed];}
+  initBattle();
+}
+function initBattle(){
+  ROCKS=genRocks();
+  board=Array(16).fill(null); ROCKS.forEach(i=>board[i]='rock');
+  blueHand=[...blueInsts].sort(()=>Math.random()-.5);
+  redHand=[...redInsts].sort(()=>Math.random()-.5);
+  selectedInst=null; currentTurn='blue'; battleLocked=false;
+  $('deckScreen').style.display='none'; $('battleArea').style.display='flex';
+  renderBattle();
+}
+
+// ── RENDER ──
+function renderBattle(){
+  updateCoins();
+  let blue=0,red=0;
+  board.forEach(c=>{if(c&&c!=='rock'){if(c.team==='blue')blue++;else red++;}});
+  $('scoreBlue').textContent=blue; $('scoreRed').textContent=red;
+  const myTeamOnline=onlineRole==='host'?'blue':'red';
+  $('turnLabel').textContent=currentTurn==='blue'
+    ?(battleMode==='pvp'?'Turno Azul':battleMode==='online'?(currentTurn===myTeamOnline?'Tu turno (Azul)':'Rival pensando...'):'Tu turno')
+    :(battleMode==='pvp'?'Turno Rojo':battleMode==='online'?(currentTurn===myTeamOnline?'Tu turno (Rojo)':'Rival pensando...'):'IA pensando...');
+
+  const bg=$('boardGrid'); bg.innerHTML='';
+  for(let i=0;i<16;i++){
+    const cell=document.createElement('div'); cell.className='board-cell'; cell.dataset.idx=i;
+    const c=board[i];
+    if(c==='rock'){
+      const rk=document.createElement('div'); rk.className='rock-cell'; rk.textContent='';
+      cell.appendChild(rk);
+    }else if(c){
+      const el=buildCard(c.inst,{team:c.team,size:90}); cell.appendChild(el);
+    }else{
+      const aiTurn=battleMode==='ai'&&currentTurn==='red';
+      const myTurn=(currentTurn==='blue')||(battleMode==='pvp'&&currentTurn==='red');
+      if(myTurn&&selectedInst&&!aiTurn&&!battleLocked){
+        cell.classList.add('can-place');
+        const idx=i; cell.onclick=()=>placeCard(idx);
+      }else{
+        const hint=document.createElement('div'); hint.className='board-cell-hint'; hint.textContent='';
+        cell.appendChild(hint);
+      }
+    }
+    bg.appendChild(cell);
+  }
+
+  const ha=$('handsArea'); ha.innerHTML='';
+  const bp=document.createElement('div'); bp.className='hand-panel';
+  const bl=document.createElement('div'); bl.className='hand-label blue';
+  bl.textContent=battleMode==='pvp'?'Jugador Azul':'Tu mano'; bp.appendChild(bl);
+  const br=document.createElement('div'); br.className='hand-cards-row';
+  blueHand.forEach(inst=>{
+    const isSel=selectedInst&&selectedInst.iid===inst.iid;
+    const el=buildCard(inst,{size:82,selected:isSel});
+    const canClickBlue=(currentTurn==='blue'&&!battleLocked)&&(battleMode!=='online'||onlineRole==='host');
+    if(canClickBlue){
+      el.classList.add('clickable');
+      el.onclick=()=>{selectedInst=isSel?null:inst; renderBattle();};
+    }
+    br.appendChild(el);
+  });
+  bp.appendChild(br); ha.appendChild(bp);
+
+  const rp=document.createElement('div'); rp.className='hand-panel';
+  const rl=document.createElement('div'); rl.className='hand-label red';
+  rl.textContent=battleMode==='pvp'?'Jugador Rojo':'Enemigo'; rp.appendChild(rl);
+  const rr=document.createElement('div'); rr.className='hand-cards-row';
+  redHand.forEach(inst=>{
+    const isSel=selectedInst&&selectedInst.iid===inst.iid;
+    const facedown=battleMode==='ai';
+    const el=buildCard(inst,{size:82,facedown,selected:isSel&&!facedown});
+    const canClickRed=(battleMode==='pvp'&&currentTurn==='red'&&!battleLocked)||(battleMode==='online'&&onlineRole==='guest'&&currentTurn==='red'&&!battleLocked);
+    if(canClickRed){
+      el.classList.add('clickable');
+      el.onclick=()=>{selectedInst=isSel?null:inst; renderBattle();};
+    }
+    rr.appendChild(el);
+  });
+  rp.appendChild(rr); ha.appendChild(rp);
+}
+
+// ── PLACE ──
+function placeCard(cellIdx){
+  if(!selectedInst||battleLocked)return;
+  if(battleMode==='online'){placeCardOnline(cellIdx);return;}
+  battleLocked=true;
+  const team=currentTurn;
+  board[cellIdx]={inst:selectedInst,team};
+  if(team==='blue')blueHand=blueHand.filter(c=>c.iid!==selectedInst.iid);
+  else redHand=redHand.filter(c=>c.iid!==selectedInst.iid);
+  selectedInst=null;
+  renderBattle();
+
+  const events=computeCaptures(cellIdx,team);
+  playBattleAnimations(events,cellIdx,team,()=>{
+    applyCaptures(events,cellIdx,team);
+    renderBattle();
+    battleLocked=false;
+    if(blueHand.length===0&&redHand.length===0){endBattle();return;}
+    currentTurn=currentTurn==='blue'?'red':'blue';
+    renderBattle();
+    if(battleMode==='ai'&&currentTurn==='red')setTimeout(aiPlay,600);
+  });
+}
+
+// ── NEIGHBOUR HELPER ──
+function getNeighbours(idx){
+  const r=Math.floor(idx/4),c=idx%4,ns=[];
+  if(c>0)      ns.push({nIdx:idx-1,dir:'left'});
+  if(c<3)      ns.push({nIdx:idx+1,dir:'right'});
+  if(r>0)      ns.push({nIdx:idx-4,dir:'up'});
+  if(r<3)      ns.push({nIdx:idx+4,dir:'down'});
+  if(c>0&&r>0) ns.push({nIdx:idx-5,dir:'upleft'});
+  if(c<3&&r>0) ns.push({nIdx:idx-3,dir:'upright'});
+  if(c>0&&r<3) ns.push({nIdx:idx+3,dir:'downleft'});
+  if(c<3&&r<3) ns.push({nIdx:idx+5,dir:'downright'});
+  return ns.filter(n=>n.nIdx>=0&&n.nIdx<16);
+}
+
+// ── COMPUTE CAPTURES (dry run) ──
+function computeCaptures(placedIdx,attackerTeam){
+  const A=board[placedIdx].inst;
+  const events=[];
+  let placedLost=false;
+  getNeighbours(placedIdx).forEach(({nIdx,dir})=>{
+    if(placedLost)return;
+    const cell=board[nIdx];
+    if(!cell||cell==='rock'||cell.team===attackerTeam)return;
+    const facing=DIR_FACING[dir]; if(!facing)return;
+    const fA=A.arrows[facing.a];
+    const fB=cell.inst.arrows[facing.b];
+    if(!fA)return;
+    if(!fB){
+      events.push({type:'direct',idx:nIdx,dir,fA:facing.a,fB:null,scoreA:null,scoreB:null});
+    }else{
+      const sA=instanceScore(A),sB=instanceScore(cell.inst);
+      if(sA>=sB){
+        events.push({type:'win',idx:nIdx,dir,fA:facing.a,fB:facing.b,scoreA:sA,scoreB:sB});
+        computeChainEvents(nIdx,attackerTeam,new Set([placedIdx]),events);
+      }else{
+        events.push({type:'lose',idx:placedIdx,dir,fA:facing.a,fB:facing.b,scoreA:sA,scoreB:sB});
+        placedLost=true;
+      }
+    }
+  });
+  return events;
+}
+function computeChainEvents(fromIdx,attackerTeam,visited,events){
+  if(visited.has(fromIdx))return;
+  visited.add(fromIdx);
+  const inst=board[fromIdx].inst;
+  getNeighbours(fromIdx).forEach(({nIdx,dir})=>{
+    if(visited.has(nIdx))return;
+    const neighbour=board[nIdx];
+    if(!neighbour||neighbour==='rock'||neighbour.team===attackerTeam)return;
+    if(events.some(e=>e.idx===nIdx&&e.type!=='lose'))return;
+    const facing=DIR_FACING[dir]; if(!facing)return;
+    if(inst.arrows[facing.a]&&neighbour.inst.arrows[facing.b]){
+      events.push({type:'chain',idx:nIdx,dir,chainFrom:fromIdx});
+      computeChainEvents(nIdx,attackerTeam,visited,events);
+    }
+  });
+}
+
+// ── APPLY CAPTURES ──
+function applyCaptures(events,placedIdx,attackerTeam){
+  const defTeam=attackerTeam==='blue'?'red':'blue';
+  events.forEach(ev=>{
+    if(ev.type==='direct'||ev.type==='win'||ev.type==='chain'){
+      if(board[ev.idx]&&board[ev.idx]!=='rock')board[ev.idx]={...board[ev.idx],team:attackerTeam};
+    }else if(ev.type==='lose'){
+      if(board[placedIdx]&&board[placedIdx]!=='rock')board[placedIdx]={...board[placedIdx],team:defTeam};
+    }
+  });
+}
+
+// ── ANIMATIONS ──
+function getCardElInCell(idx){
+  const cell=$('boardGrid')?.children[idx];
+  return cell?.querySelector('.bcard');
+}
+function floatNumber(cellIdx,text,color){
+  const cell=$('boardGrid')?.children[cellIdx]; if(!cell)return;
+  const rect=cell.getBoundingClientRect();
+  const span=document.createElement('div'); span.className='float-num';
+  span.style.color=color;
+  span.style.left=(rect.left+rect.width/2-24)+'px';
+  span.style.top=(rect.top+8)+'px';
+  span.textContent=text;
+  document.body.appendChild(span);
+  setTimeout(()=>span.remove(),1000);
+}
+function showBattlePopup(ev,attackerTeam,cb){
+  const defTeam=attackerTeam==='blue'?'red':'blue';
+  const win=ev.type==='win';
+  const popup=document.createElement('div'); popup.className='battle-popup';
+  const titleColor=win?'var(--y)':'var(--red)';
+  const aColor=attackerTeam==='blue'?'var(--blue)':'var(--red)';
+  const dColor=defTeam==='blue'?'var(--blue)':'var(--red)';
+  popup.innerHTML='<h3 style="color:'+titleColor+'">'+(win?'Victoria!':'Derrota!')+'</h3>'
+    +'<div class="bp-scores"><span style="color:'+aColor+'">'+ev.scoreA+'</span>'
+    +'<span style="color:var(--muted)"> vs </span>'
+    +'<span style="color:'+dColor+'">'+ev.scoreB+'</span></div>'
+    +'<div class="bp-result">'+(win?'Carta conquistada':'Tu carta fue capturada')+'</div>';
+  document.body.appendChild(popup);
+  setTimeout(()=>{popup.remove(); cb();},1000);
+}
+
+function playBattleAnimations(events,placedIdx,attackerTeam,done){
+  if(!events.length){done();return;}
+  let delay=0;
+  const STEP=350;
+  events.forEach((ev)=>{
+    setTimeout(()=>{
+      const placedEl=getCardElInCell(placedIdx);
+      const targetEl=getCardElInCell(ev.idx);
+      if(ev.type==='direct'){
+        if(placedEl&&ev.fA){const az=placedEl.querySelector('.az-'+ev.fA);if(az){az.classList.add('flash-atk');setTimeout(()=>az.classList.remove('flash-atk'),500);}}
+        if(targetEl){targetEl.classList.add('combat-direct');setTimeout(()=>targetEl.classList.remove('combat-direct'),500);}
+        floatNumber(ev.idx,'CAPTURA','#00ff88');
+      }else if(ev.type==='win'||ev.type==='lose'){
+        if(placedEl&&ev.fA){const az=placedEl.querySelector('.az-'+ev.fA);if(az){az.classList.add('flash-atk');setTimeout(()=>az.classList.remove('flash-atk'),500);}}
+        if(targetEl&&ev.fB){const az=targetEl.querySelector('.az-'+ev.fB);if(az){az.classList.add('flash-def');setTimeout(()=>az.classList.remove('flash-def'),500);}}
+        setTimeout(()=>{
+          if(ev.type==='win'){
+            if(placedEl){placedEl.classList.add('combat-win');setTimeout(()=>placedEl.classList.remove('combat-win'),500);}
+            if(targetEl){targetEl.classList.add('combat-lose');setTimeout(()=>targetEl.classList.remove('combat-lose'),500);}
+          }else{
+            if(placedEl){placedEl.classList.add('combat-lose');setTimeout(()=>placedEl.classList.remove('combat-lose'),500);}
+            if(targetEl){targetEl.classList.add('combat-win');setTimeout(()=>targetEl.classList.remove('combat-win'),500);}
+          }
+          showBattlePopup(ev,attackerTeam,()=>{});
+          floatNumber(ev.type==='win'?ev.idx:placedIdx,
+            ev.scoreA+' vs '+ev.scoreB,
+            ev.type==='win'?'#FFD93D':'#ff4444');
+        },180);
+      }else if(ev.type==='chain'){
+        if(targetEl){targetEl.classList.add('chain-flash');setTimeout(()=>targetEl.classList.remove('chain-flash'),500);}
+        const srcEl=getCardElInCell(ev.chainFrom);
+        if(srcEl&&ev.dir){const facing=DIR_FACING[ev.dir];if(facing){const az=srcEl.querySelector('.az-'+facing.a);if(az){az.classList.add('flash-atk');setTimeout(()=>az.classList.remove('flash-atk'),400);}}}
+        floatNumber(ev.idx,'COMBO!','#a29bfe');
+      }
+    },delay);
+    delay+=STEP;
+  });
+  setTimeout(done,delay+500);
+}
+
+// ── AI ──
+function aiPlay(){
+  if(currentTurn!=='red'||redHand.length===0)return;
+  const inst=redHand[Math.floor(Math.random()*redHand.length)];
+  const empty=[];for(let i=0;i<16;i++)if(!board[i])empty.push(i);
+  if(!empty.length)return;
+  let best=empty[0],bestSc=-1;
+  empty.forEach(ci=>{
+    let sc=0;getNeighbours(ci).forEach(({nIdx})=>{if(board[nIdx]&&board[nIdx]!=='rock'&&board[nIdx].team==='blue')sc++;});
+    if(sc>bestSc){bestSc=sc;best=ci;}
+  });
+  board[best]={inst,team:'red'};
+  redHand=redHand.filter(c=>c.iid!==inst.iid);
+  renderBattle();
+  battleLocked=true;
+  const events=computeCaptures(best,'red');
+  playBattleAnimations(events,best,'red',()=>{
+    applyCaptures(events,best,'red');
+    renderBattle();
+    battleLocked=false;
+    if(blueHand.length===0&&redHand.length===0){endBattle();return;}
+    currentTurn='blue'; renderBattle();
+  });
+}
+
+// ── END ──
+function endBattle(){
+  let blue=0,red=0;
+  board.forEach(c=>{if(c&&c!=='rock'){if(c.team==='blue')blue++;else red++;}});
+  const win=blue>red,draw=blue===red;
+  $('resultTitle').textContent=draw?'Empate!':win?'Victoria!':battleMode==='pvp'?'Gana el Rojo!':'Derrota!';
+  $('resultTitle').className='result-title '+(draw?'draw':win?'win':'lose');
+  $('resultSub').textContent='Azul '+blue+' vs Rojo '+red;
+  const ps=$('pickSection'); ps.style.display='none';
+  if(win){
+    STATE.coins+=30; saveState(); updateCoins();
+    const pickable=board.filter(c=>c&&c!=='rock'&&c.team==='blue'&&c.inst.isAI).map(c=>c.inst);
+    if(pickable.length){
+      ps.style.display='flex';
+      const pr=$('pickRow'); pr.innerHTML='';
+      pickable.forEach(inst=>{
+        const el=buildCard(inst,{size:90}); el.style.cursor='pointer';
+        el.onclick=()=>pickCard(inst); pr.appendChild(el);
+      });
+    }
+    confetti();
+  }else if(draw){STATE.coins+=10; saveState(); updateCoins();}
+  const btns=$('resultBtns'); btns.innerHTML='';
+  const r=document.createElement('button'); r.className='res-btn p'; r.textContent='Revancha';
+  r.onclick=()=>{$('resultOverlay').classList.remove('show');openBattle();}; btns.appendChild(r);
+  const h=document.createElement('button'); h.className='res-btn s'; h.textContent='Inicio';
+  h.onclick=()=>{$('resultOverlay').classList.remove('show');goHome();}; btns.appendChild(h);
+  $('resultOverlay').classList.add('show');
+}
+function pickCard(inst){
+  if(!STATE.owned[inst.baseId])STATE.owned[inst.baseId]={count:0};
+  STATE.owned[inst.baseId].count++;
+  if(!CATALOG.find(c=>c.id===inst.baseId))CATALOG.push({id:inst.baseId,name:inst.name,emoji:inst.emoji,rarity:inst.rarity,isAI:true});
+  saveState(); saveCatalog();
+  $('pickSection').style.display='none';
+  $('resultSub').textContent+=' - '+inst.name+' anadida!';
+  confetti();
+}
+
+// ══════════════════════ MINIGAMES ══════════════════════
+let curMini=null,curDiff=null,rafId=null,timerInt=null,score=0,lives=3,timeLeft=30;
+function openMini(id){
+  curMini=id;const def=MINI_DEF[id];
+  $('diffTitle').textContent={catch:'🪣 Atrapa Monedas',space:'🚀 Space Shooter',mole:'🔨 Whack-a-Mole',dodge:'⚡ Esquiva'}[id];
+  $('drE').textContent=def.rewards.easy;$('drM').textContent=def.rewards.medium;$('drH').textContent=def.rewards.hard;
+  $('diffPicker').style.display='flex';$('canvasArea').style.display='none';$('moleArea').style.display='none';
+  $('goOverlay').classList.remove('show');showScreen('miniScreen');
+}
+function startMini(diff){
+  curDiff=diff;score=0;lives=3;timeLeft=diff==='easy'?40:diff==='medium'?30:20;
+  $('diffPicker').style.display='none';$('goOverlay').classList.remove('show');
+  if(curMini==='mole')initMole();else initCanvas();
+  if(timerInt)clearInterval(timerInt);
+  timerInt=setInterval(()=>{timeLeft--;$('hTime').textContent=timeLeft;$('mTime').textContent=timeLeft;if(timeLeft<=0)endMini();},1000);
+}
+function retryMini(){startMini(curDiff);}
+function stopMini(){if(rafId){cancelAnimationFrame(rafId);rafId=null;}if(timerInt){clearInterval(timerInt);timerInt=null;}clearMoleTimers();}
+function endMini(){
+  stopMini();const base=MINI_DEF[curMini].rewards[curDiff];
+  let earned=Math.max(Math.round(base*.2),Math.min(base,Math.round(base*(score/Math.max(score+3,1))*1.8+base*.25)));
+  STATE.coins+=earned;saveState();updateCoins();
+  $('goEarned').textContent='+'+earned+' 🪙';$('goScore').textContent='Puntuación: '+score;
+  $('goOverlay').classList.add('show');if(earned>=base*.7)confetti();
+}
+let ctx,CW=520,CH=460,px=260,keys={},touchX=0,catchItems=[],bullets=[],asteroids=[],obstacles=[],shootCD=0;
+function initCanvas(){
+  $('canvasArea').style.display='flex';const cv=$('gameCanvas');ctx=cv.getContext('2d');CW=cv.width;CH=cv.height;
+  catchItems=[];bullets=[];asteroids=[];obstacles=[];px=CW/2;shootCD=0;
+  $('hTime').textContent=timeLeft;$('hScore').textContent='0';$('hLives').textContent='3';$('hCoins').textContent='0';
+  document.onkeydown=e=>{keys[e.key]=true;if(['ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault()};
+  document.onkeyup=e=>{keys[e.key]=false};
+  const cv2=$('gameCanvas');cv2.ontouchstart=e=>{touchX=e.touches[0].clientX};
+  cv2.ontouchmove=e=>{const dx=e.touches[0].clientX-touchX;px=Math.max(30,Math.min(CW-30,px+dx*1.7));touchX=e.touches[0].clientX;e.preventDefault();},{passive:false};
+  const loops={catch:catchLoop,space:spaceLoop,dodge:dodgeLoop};if(loops[curMini])rafId=requestAnimationFrame(loops[curMini]);
+}
+function movePx(){if(keys['ArrowLeft']||keys['a'])px=Math.max(30,px-6);if(keys['ArrowRight']||keys['d'])px=Math.min(CW-30,px+6);}
+function drawBG(c,s){ctx.fillStyle=c;ctx.fillRect(0,0,CW,CH);if(s){ctx.fillStyle='rgba(255,255,255,.2)';for(let i=0;i<55;i++){ctx.beginPath();ctx.arc((i*137+Date.now()*.008)%CW,(i*89+i*23)%CH,1,0,6.28);ctx.fill();}}}
+function updH(){$('hScore').textContent=score;$('hLives').textContent=lives;$('hCoins').textContent=Math.round(score*1.1);}
+function catchLoop(){if(!ctx)return;movePx();const spd=curDiff==='easy'?2:curDiff==='medium'?3.5:5.5;
+  if(Math.random()<(curDiff==='easy'?.025:curDiff==='medium'?.042:.065))catchItems.push({x:30+Math.random()*(CW-60),y:-28,s:spd+Math.random()*.8,star:Math.random()<.1});
+  drawBG('#0d0d1a',true);ctx.font='38px serif';ctx.textAlign='center';ctx.fillText('🪣',px,CH-20);
+  catchItems=catchItems.filter(ci=>{ci.y+=ci.s;ctx.font='26px serif';ctx.fillText(ci.star?'🌟':'🪙',ci.x,ci.y);
+    if(ci.y>CH-58&&ci.y<CH-6&&Math.abs(ci.x-px)<46){score+=ci.star?3:1;updH();return false;}
+    if(ci.y>CH){if(!ci.star){lives--;updH();if(lives<=0){endMini();return false;}}return false;}return true;});
+  ctx.font='14px serif';ctx.textAlign='left';for(let i=0;i<3;i++)ctx.fillText(i<lives?'❤️':'🖤',8+i*24,20);
+  rafId=requestAnimationFrame(catchLoop);}
+function spaceLoop(){if(!ctx)return;movePx();shootCD--;
+  if(shootCD<=0){bullets.push({x:px,y:CH-58});shootCD=curDiff==='easy'?18:curDiff==='medium'?12:8;}
+  if(Math.random()<(curDiff==='easy'?.018:curDiff==='medium'?.03:.05))asteroids.push({x:20+Math.random()*(CW-40),y:-30,s:curDiff==='easy'?1.8:curDiff==='medium'?2.8:4.5,e:['☄️','🌑','🪨'][Math.floor(Math.random()*3)]});
+  drawBG('#050510',true);ctx.font='34px serif';ctx.textAlign='center';ctx.fillText('🚀',px,CH-26);ctx.fillStyle='#FFD93D';
+  bullets=bullets.filter(b=>{b.y-=9;ctx.beginPath();ctx.arc(b.x,b.y,4,0,6.28);ctx.fill();return b.y>0;});
+  asteroids=asteroids.filter(a=>{a.y+=a.s;ctx.font='27px serif';ctx.fillText(a.e,a.x,a.y);
+    for(let i=bullets.length-1;i>=0;i--){if(Math.abs(bullets[i].x-a.x)<27&&Math.abs(bullets[i].y-a.y)<27){bullets.splice(i,1);score++;updH();return false;}}
+    if(a.y>CH-68&&Math.abs(a.x-px)<36){lives--;updH();if(lives<=0){endMini();return false;}return false;}return a.y<CH+30;});
+  ctx.font='14px serif';ctx.textAlign='left';for(let i=0;i<3;i++)ctx.fillText(i<lives?'❤️':'🖤',8+i*24,20);
+  rafId=requestAnimationFrame(spaceLoop);}
+function dodgeLoop(){if(!ctx)return;movePx();
+  if(Math.random()<(curDiff==='easy'?.03:curDiff==='medium'?.052:.085))obstacles.push({x:20+Math.random()*(CW-40),y:-30,s:curDiff==='easy'?3:curDiff==='medium'?5:8,coin:false,e:['🔥','💥','🌀','⚡','🚧'][Math.floor(Math.random()*5)]});
+  if(Math.random()<.022)obstacles.push({x:20+Math.random()*(CW-40),y:-30,s:2.8,coin:true,e:'🪙'});
+  drawBG('#0a1408',false);ctx.strokeStyle='rgba(0,255,80,.04)';ctx.lineWidth=1;
+  for(let x=0;x<CW;x+=44){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,CH);ctx.stroke();}
+  for(let y=0;y<CH;y+=44){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(CW,y);ctx.stroke();}
+  ctx.font='33px serif';ctx.textAlign='center';ctx.fillText('⚡',px,CH-38);
+  obstacles=obstacles.filter(o=>{o.y+=o.s;ctx.font='26px serif';ctx.fillText(o.e,o.x,o.y);
+    if(o.y>CH-78&&o.y<CH-4&&Math.abs(o.x-px)<33){if(o.coin){score+=2;updH();}else{lives--;updH();if(lives<=0){endMini();return false;}}return false;}return o.y<CH+30;});
+  ctx.font='14px serif';ctx.textAlign='left';for(let i=0;i<3;i++)ctx.fillText(i<lives?'❤️':'🖤',8+i*24,20);
+  rafId=requestAnimationFrame(dodgeLoop);}
+const MOLES=['🐹','🐭','🐰','🦔','🐿️'];
+let moleActive=Array(9).fill(false),mTimers=[];
+function clearMoleTimers(){mTimers.forEach(clearTimeout);mTimers=[];}
+function initMole(){
+  $('moleArea').style.display='flex';const g=$('moleGrid');g.innerHTML='';
+  moleActive=Array(9).fill(false);score=0;$('mTime').textContent=timeLeft;$('mScore').textContent='0';$('mCoins').textContent='0';
+  for(let i=0;i<9;i++){const h=document.createElement('div');h.className='mhole';h.innerHTML='&nbsp;';h.onclick=()=>whack(i);g.appendChild(h);}
+  scheduleMole();
+}
+function scheduleMole(){
+  const iv=curDiff==='easy'?850:curDiff==='medium'?560:360,dur=curDiff==='easy'?1300:curDiff==='medium'?850:500;
+  function pop(){if(timeLeft<=0)return;const holes=document.querySelectorAll('.mhole');
+    let idx=Math.floor(Math.random()*9);for(let i=0;i<9;i++){if(!moleActive[(idx+i)%9]){idx=(idx+i)%9;break;}}
+    if(!holes[idx])return;moleActive[idx]=true;holes[idx].textContent=MOLES[Math.floor(Math.random()*5)];holes[idx].classList.add('active');
+    const t1=setTimeout(()=>{if(moleActive[idx]){moleActive[idx]=false;if(holes[idx]){holes[idx].textContent='';holes[idx].classList.remove('active');}}},dur);mTimers.push(t1);
+    const t2=setTimeout(pop,iv);mTimers.push(t2);
+    if(curDiff!=='easy'&&Math.random()<.45){const t3=setTimeout(()=>{
+      let j=Math.floor(Math.random()*9);for(let i=0;i<9;i++){if(!moleActive[(j+i)%9]){j=(j+i)%9;break;}}
+      if(!holes[j])return;moleActive[j]=true;holes[j].textContent=MOLES[Math.floor(Math.random()*5)];holes[j].classList.add('active');
+      const t4=setTimeout(()=>{if(moleActive[j]){moleActive[j]=false;if(holes[j]){holes[j].textContent='';holes[j].classList.remove('active');}}},dur);mTimers.push(t4);},180);mTimers.push(t3);}
+  }pop();
+}
+function whack(i){if(!moleActive[i]||timeLeft<=0)return;const holes=document.querySelectorAll('.mhole');
+  moleActive[i]=false;holes[i].classList.remove('active');holes[i].classList.add('hit');holes[i].textContent='💫';
+  setTimeout(()=>{holes[i].textContent='';holes[i].classList.remove('hit');},280);
+  score++;$('mScore').textContent=score;$('mCoins').textContent=Math.round(score*1.5);}
+
+function confetti(){const c=$('cfc');c.innerHTML='';
+  const cols=['#FFD93D','#FF6B35','#6C5CE7','#00CEC9','#FD79A8','#55EFC4'];
+  for(let i=0;i<80;i++){const p=document.createElement('div');p.className='cp';
+    p.style.cssText=`left:${Math.random()*100}vw;background:${cols[i%cols.length]};animation-duration:${.7+Math.random()*1.5}s;animation-delay:${Math.random()*.6}s;width:${5+Math.random()*9}px;height:${7+Math.random()*13}px;border-radius:${Math.random()>.5?'50%':'2px'}`;
+    c.appendChild(p);}setTimeout(()=>c.innerHTML='',2800);}
+
+
+// ══════════════════════════════════════════════════
+// ════════ ONLINE MULTIPLAYER — PeerJS ════════════
+// ══════════════════════════════════════════════════
+// Protocol messages:
+//   {type:'deck', insts:[...]}       — send deck after both connected
+//   {type:'place', cellIdx, instIid} — place a card
+//   {type:'sync', board:[...]}       — full board sync after move
+//   {type:'ready'}                   — deck selected, ready to start
+
+let peer = null;          // PeerJS peer
+let peerConn = null;      // active DataConnection
+let onlineRole = null;    // 'host' or 'guest'
+let onlineReady = {host:false, guest:false};
+let onlineHostDeck = null;
+let onlineGuestDeck = null;
+
+function genRoomCode(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ';
+  let code='';for(let i=0;i<4;i++)code+=chars[Math.floor(Math.random()*chars.length)];
+  return code;
+}
+
+function openOnlineLobby(){
+  $('modePicker').style.display='none';
+  $('onlineLobby').style.display='flex';
+  $('lobbyChoose').style.display='flex';
+  $('lobbyJoinRow').style.display='none';
+  $('lobbyCodeDisplay').style.display='none';
+  $('lobbyConnected').style.display='none';
+  $('lobbyError').style.display='none';
+  $('lobbyStatus').textContent='Elige como quieres jugar';
+}
+
+function exitOnlineLobby(){
+  destroyPeer();
+  $('onlineLobby').style.display='none';
+  $('modePicker').style.display='flex';
+}
+
+function destroyPeer(){
+  if(peerConn){try{peerConn.close();}catch(e){}}
+  if(peer){try{peer.destroy();}catch(e){}}
+  peer=null; peerConn=null; onlineRole=null;
+}
+
+function setLobbyError(msg){
+  const el=$('lobbyError');el.textContent=msg;el.style.display='block';
+  setTimeout(()=>el.style.display='none',4000);
+}
+
+// ── CREATE ROOM (host) ──
+function createOnlineRoom(){
+  $('lobbyChoose').style.display='none';
+  $('lobbyStatus').textContent='Conectando...';
+  onlineRole='host';
+  const code=genRoomCode();
+  const peerId='ewd-'+code;
+  peer=new Peer(peerId,{debug:0});
+  peer.on('open',()=>{
+    $('lobbyBigCode').textContent=code;
+    $('lobbyCodeDisplay').style.display='flex';
+    $('lobbyStatus').textContent='Comparte el codigo con tu rival';
+  });
+  peer.on('connection',conn=>{
+    peerConn=conn;
+    setupConn();
+    $('lobbyCodeDisplay').style.display='none';
+    $('lobbyConnected').style.display='block';
+    $('lobbyStatus').textContent='Rival conectado! Eligiendo mazos...';
+    setTimeout(()=>{
+      $('onlineLobby').style.display='none';
+      battleMode='online';
+      deckSelBlue=[];deckSelRed=[];
+      showDeckPicker('blue');
+    },1000);
+  });
+  peer.on('error',e=>{
+    setLobbyError('Error: '+e.type+'. Prueba de nuevo.');
+    $('lobbyChoose').style.display='flex';
+    $('lobbyCodeDisplay').style.display='none';
+    destroyPeer();
+  });
+}
+
+// ── JOIN ROOM (guest) ──
+function showJoinInput(){
+  $('lobbyChoose').style.display='none';
+  $('lobbyJoinRow').style.display='flex';
+  $('joinCodeInput').focus();
+}
+function joinOnlineRoom(){
+  const code=$('joinCodeInput').value.trim().toUpperCase();
+  if(code.length!==4){setLobbyError('Introduce 4 letras');return;}
+  $('lobbyJoinRow').style.display='none';
+  $('lobbyStatus').textContent='Conectando con la sala '+code+'...';
+  onlineRole='guest';
+  peer=new Peer('ewd-guest-'+Date.now(),{debug:0});
+  peer.on('open',()=>{
+    peerConn=peer.connect('ewd-'+code,{reliable:true});
+    setupConn();
+    peerConn.on('open',()=>{
+      $('lobbyConnected').style.display='block';
+      $('lobbyStatus').textContent='Conectado! Eligiendo mazo...';
+      setTimeout(()=>{
+        $('onlineLobby').style.display='none';
+        battleMode='online';
+        deckSelBlue=[];deckSelRed=[];
+        showDeckPicker('blue'); // guest picks their deck (will be "red")
+      },1000);
+    });
+    peerConn.on('error',e=>setLobbyError('No se pudo conectar. Verifica el codigo.'));
+  });
+  peer.on('error',e=>{setLobbyError('Error: '+e.type);destroyPeer();$('lobbyChoose').style.display='flex';$('lobbyJoinRow').style.display='none';});
+}
+
+// ── CONNECTION SETUP ──
+function setupConn(){
+  peerConn.on('data',onlineReceive);
+  peerConn.on('close',()=>{
+    if($('battleArea').style.display!=='none'){
+      alert('El rival se ha desconectado.');goHome();
+    }
+  });
+}
+
+// ── SEND / RECEIVE ──
+function onlineSend(msg){
+  if(peerConn&&peerConn.open) peerConn.send(JSON.stringify(msg));
+}
+
+function onlineReceive(raw){
+  const msg=JSON.parse(raw);
+  if(msg.type==='rocks'){
+    ROCKS=new Set(msg.rocks);
+    board=Array(16).fill(null); ROCKS.forEach(i=>board[i]='rock');
+    return;
+  }
+  if(msg.type==='deck'){
+    // Opponent sent their deck instances
+    if(onlineRole==='host'){
+      // guest sent deck → they are red
+      redInsts=msg.insts.map(d=>({...d,arrows:d.arrows}));
+      onlineReady.guest=true;
+    }else{
+      // host sent deck → they are blue
+      blueInsts=msg.insts.map(d=>({...d,arrows:d.arrows}));
+      onlineReady.host=true;
+    }
+    if(onlineReady.host&&onlineReady.guest) initOnlineBattle();
+  }
+  else if(msg.type==='place'){
+    // Opponent placed a card — find it in their hand and place it
+    const inst=redHand.find(c=>c.iid===msg.instIid)||(blueHand.find(c=>c.iid===msg.instIid));
+    if(!inst)return;
+    const team=onlineRole==='host'?'red':'blue'; // opponent's team
+    board[msg.cellIdx]={inst,team};
+    if(team==='red') redHand=redHand.filter(c=>c.iid!==inst.iid);
+    else blueHand=blueHand.filter(c=>c.iid!==inst.iid);
+    renderBattle();
+    const events=computeCaptures(msg.cellIdx,team);
+    playBattleAnimations(events,msg.cellIdx,team,()=>{
+      applyCaptures(events,msg.cellIdx,team);
+      renderBattle();
+      battleLocked=false;
+      if(blueHand.length===0&&redHand.length===0){endBattle();return;}
+      currentTurn=onlineRole==='host'?'blue':'red'; // back to my turn
+      renderBattle();
+    });
+  }
+}
+
+function initOnlineBattle(){
+  ROCKS=genRocks();
+  // Host determines rocks and sends them
+  if(onlineRole==='host'){
+    onlineSend({type:'rocks',rocks:[...ROCKS]});
+  }
+  // Actual init is triggered after rocks are synced
+  // For simplicity: host picks rocks and both start simultaneously
+  board=Array(16).fill(null); ROCKS.forEach(i=>board[i]='rock');
+  blueHand=[...blueInsts].sort(()=>Math.random()-.5);
+  redHand=[...redInsts].sort(()=>Math.random()-.5);
+  // Host is blue, guest is red
+  currentTurn='blue';
+  selectedInst=null; battleLocked=false;
+  $('deckScreen').style.display='none'; $('battleArea').style.display='flex';
+  renderBattle();
+}
+
+// Modified confirmDeck for online mode
+function confirmDeckOnline(){
+  const myInsts=[...deckSelBlue];
+  if(onlineRole==='host'){
+    blueInsts=myInsts;
+    onlineReady.host=true;
+  }else{
+    redInsts=myInsts;
+    onlineReady.guest=true;
+  }
+  // Send deck to opponent
+  onlineSend({type:'deck', insts:myInsts.map(inst=>({
+    ...inst, img:inst.img?'':inst.img // skip img data to save bandwidth; opponent has same catalog
+  }))});
+  // Show waiting screen
+  $('deckScreen').style.display='none';
+  // Show a waiting message in battle area
+  $('battleArea').style.display='flex';
+  $('boardGrid').innerHTML='<div style="grid-column:1/5;display:flex;align-items:center;justify-content:center;height:200px;color:var(--muted);font-size:1rem;font-weight:700">Esperando al rival...</div>';
+  $('handsArea').innerHTML='';
+  $('turnLabel').textContent='Esperando...';
+}
+
+// Hook into place for online sync
+function placeCardOnline(cellIdx){
+  if(!selectedInst||battleLocked)return;
+  // Check it's my turn
+  const myTeam=onlineRole==='host'?'blue':'red';
+  if(currentTurn!==myTeam)return;
+  battleLocked=true;
+  const iid=selectedInst.iid;
+  board[cellIdx]={inst:selectedInst,team:myTeam};
+  if(myTeam==='blue') blueHand=blueHand.filter(c=>c.iid!==selectedInst.iid);
+  else redHand=redHand.filter(c=>c.iid!==selectedInst.iid);
+  selectedInst=null;
+  // Tell opponent
+  onlineSend({type:'place',cellIdx,instIid:iid});
+  renderBattle();
+  const events=computeCaptures(cellIdx,myTeam);
+  playBattleAnimations(events,cellIdx,myTeam,()=>{
+    applyCaptures(events,cellIdx,myTeam);
+    renderBattle();
+    battleLocked=false;
+    if(blueHand.length===0&&redHand.length===0){endBattle();return;}
+    currentTurn=myTeam==='blue'?'red':'blue';
+    renderBattle();
+  });
+}
+
+if(CATALOG.length>0)showHome();else showScreen('setupScreen');
+</script>
+</body>
+</html>
