@@ -111,10 +111,33 @@ html,body{height:100%;font-family:'Nunito',sans-serif;background:var(--bg);color
 .bcard.hasdup .dup-b{display:block}
 
 /* rock cell */
-.rock-cell{width:96px;height:120px;border-radius:8px;
-  background:linear-gradient(135deg,#252525,#181818);
-  border:2px solid #333;display:flex;align-items:center;justify-content:center;
-  font-size:2rem;color:rgba(255,255,255,.25);flex-shrink:0}
+.rock-cell{
+  width:94px;height:118px;border-radius:6px;
+  background:
+    repeating-linear-gradient(0deg,transparent,transparent 18px,rgba(0,0,0,.35) 18px,rgba(0,0,0,.35) 20px),
+    repeating-linear-gradient(90deg,transparent,transparent 28px,rgba(0,0,0,.2) 28px,rgba(0,0,0,.2) 30px),
+    linear-gradient(160deg,#4a3728,#2e1f14,#3d2a1a);
+  border:3px solid #6b4c35;
+  box-shadow:
+    inset 0 2px 4px rgba(255,200,150,.15),
+    inset 0 -3px 6px rgba(0,0,0,.5),
+    0 4px 12px rgba(0,0,0,.6),
+    0 0 0 1px rgba(0,0,0,.8);
+  display:flex;align-items:center;justify-content:center;
+  font-size:2.2rem;flex-shrink:0;position:relative;overflow:hidden;
+}
+.rock-cell::before{
+  content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(
+    -30deg,transparent,transparent 10px,
+    rgba(255,200,120,.04) 10px,rgba(255,200,120,.04) 12px
+  );
+}
+.rock-cell::after{
+  content:'BLOQUEADO';position:absolute;bottom:4px;left:0;right:0;
+  font-size:.42rem;font-weight:900;letter-spacing:.8px;
+  color:rgba(255,180,80,.5);text-align:center;font-family:'Nunito',sans-serif;
+}
 
 /* ════ SETUP ════ */
 #setupScreen{background:var(--bg)}
@@ -349,6 +372,330 @@ html,body{height:100%;font-family:'Nunito',sans-serif;background:var(--bg);color
 @keyframes dotPulse{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
 .lobby-error{color:#ff7675;font-size:.82rem;font-weight:700;background:rgba(255,100,80,.1);
   border-radius:8px;padding:.4rem .8rem}
+
+/* ═══════ BOTTOM NAV ═══════ */
+.bottom-nav{
+  position:fixed;bottom:0;left:0;right:0;z-index:60;
+  display:none;
+  background:rgba(7,7,15,.97);
+  border-top:1px solid rgba(255,255,255,.08);
+  backdrop-filter:blur(16px);
+  padding:.3rem 0 env(safe-area-inset-bottom,.3rem);
+}
+.bottom-nav.visible{display:flex;}
+.nav-items{display:flex;width:100%;max-width:600px;margin:0 auto;}
+.nav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  padding:.45rem .2rem .3rem;cursor:pointer;
+  border:none;background:none;color:var(--muted);
+  transition:color .2s,transform .15s;font-family:'Nunito',sans-serif;
+  -webkit-tap-highlight-color:transparent;
+}
+.nav-item:active{transform:scale(.9);}
+.nav-item.active{color:var(--y);}
+.nav-item .nav-icon{font-size:1.5rem;line-height:1;position:relative;}
+.nav-item .nav-icon .nav-badge{
+  position:absolute;top:-4px;right:-6px;
+  background:var(--red);color:#fff;
+  font-size:.5rem;font-weight:900;
+  border-radius:8px;padding:1px 4px;
+  display:none;
+}
+.nav-item .nav-label{font-size:.58rem;font-weight:700;margin-top:.15rem;letter-spacing:.2px;}
+.nav-item.active .nav-label{color:var(--y);}
+/* Active indicator pip */
+.nav-item.active::after{
+  content:'';position:absolute;bottom:0;
+  width:20px;height:3px;border-radius:3px;
+  background:var(--y);
+}
+/* Give screens bottom padding for nav */
+.screen.has-nav .page-body{padding-bottom:5rem;}
+.screen.has-nav{padding-bottom:0;}
+
+/* ═══════ SCREENS ═══════ */
+/* Battle intro overlay */
+.battle-intro{
+  display:none;position:fixed;inset:0;z-index:200;
+  background:#000;align-items:center;justify-content:center;
+  flex-direction:column;gap:1rem;
+}
+.battle-intro.show{display:flex;}
+.swords-wrap{font-size:5rem;position:relative;height:6rem;width:10rem;}
+.sword-left{position:absolute;left:0;top:50%;transform:translateY(-50%) translateX(-120px);
+  animation:swordLeft 1s cubic-bezier(.22,1,.36,1) forwards;}
+.sword-right{position:absolute;right:0;top:50%;transform:translateY(-50%) translateX(120px) scaleX(-1);
+  animation:swordRight 1s cubic-bezier(.22,1,.36,1) forwards;}
+@keyframes swordLeft{to{transform:translateY(-50%) translateX(0)}}
+@keyframes swordRight{to{transform:translateY(-50%) translateX(0) scaleX(-1)}}
+.clash-flash{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  font-size:3rem;opacity:0;animation:clashFlash .4s .9s ease-out forwards;
+}
+@keyframes clashFlash{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.5)}100%{opacity:0;transform:translate(-50%,-50%) scale(2)}}
+.battle-intro h1{font-family:'Fredoka One',cursive;font-size:2.5rem;color:var(--y);
+  opacity:0;animation:introTitle .5s 1.1s ease-out forwards;text-shadow:0 0 30px rgba(255,217,61,.6);}
+@keyframes introTitle{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+
+/* ═══════ TAB SCREENS ═══════ */
+#tabStory,#tabBattle,#tabMini,#tabPacks,#tabAlbum,#tabSetup{
+  display:none;position:fixed;inset:0;z-index:10;
+  overflow-y:auto;flex-direction:column;
+  padding-bottom:5rem;
+}
+#tabStory.active,#tabBattle.active,#tabMini.active,#tabPacks.active,#tabAlbum.active,#tabSetup.active{display:flex;}
+
+/* ═══════ STORY MODE ═══════ */
+.story-bg{
+  position:fixed;inset:0;z-index:0;
+  background:linear-gradient(180deg,#0a0510 0%,#1a0a2e 40%,#0d1a0a 100%);
+  pointer-events:none;
+}
+.story-stars{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+.story-star{position:absolute;border-radius:50%;background:#fff;animation:starTwinkle 3s ease-in-out infinite;}
+@keyframes starTwinkle{0%,100%{opacity:.2}50%{opacity:.9}}
+
+/* Chapter map */
+.chapter-map{
+  position:relative;z-index:1;
+  max-width:420px;margin:0 auto;width:100%;
+  padding:1rem 1rem 2rem;
+}
+.chapter-path{
+  display:flex;flex-direction:column;gap:.8rem;
+  position:relative;
+}
+.chapter-path::before{
+  content:'';position:absolute;left:32px;top:0;bottom:0;width:3px;
+  background:linear-gradient(180deg,var(--y),var(--pu),var(--mi));
+  border-radius:2px;opacity:.4;
+}
+.chapter-node{
+  display:flex;align-items:center;gap:1rem;
+  padding:.7rem .8rem;border-radius:14px;cursor:pointer;
+  border:2px solid transparent;transition:all .2s;
+  position:relative;background:rgba(255,255,255,.03);
+}
+.chapter-node:active{transform:scale(.97);}
+.chapter-node.unlocked{border-color:rgba(255,217,61,.3);background:rgba(255,217,61,.05);}
+.chapter-node.unlocked:hover{border-color:rgba(255,217,61,.6);background:rgba(255,217,61,.1);}
+.chapter-node.completed{border-color:rgba(85,239,196,.3);background:rgba(85,239,196,.04);}
+.chapter-node.locked{opacity:.45;cursor:not-allowed;pointer-events:none;}
+.chapter-node.current{
+  border-color:var(--y);background:rgba(255,217,61,.08);
+  box-shadow:0 0 20px rgba(255,217,61,.2);
+  animation:currentPulse 2s ease-in-out infinite;
+}
+@keyframes currentPulse{0%,100%{box-shadow:0 0 20px rgba(255,217,61,.2)}50%{box-shadow:0 0 30px rgba(255,217,61,.4)}}
+.chapter-icon-wrap{
+  width:52px;height:52px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.6rem;position:relative;z-index:1;
+  background:rgba(0,0,0,.4);border:2px solid rgba(255,255,255,.1);
+}
+.chapter-node.completed .chapter-icon-wrap{background:rgba(85,239,196,.15);border-color:#55EFC4;}
+.chapter-node.current .chapter-icon-wrap{background:rgba(255,217,61,.15);border-color:var(--y);}
+.chapter-info{flex:1}
+.chapter-num{font-size:.65rem;color:var(--muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.chapter-title{font-family:'Fredoka One',cursive;font-size:1rem;color:var(--txt);margin:.1rem 0;}
+.chapter-node.locked .chapter-title{color:var(--muted);}
+.chapter-status{font-size:.68rem;color:var(--muted);}
+.chapter-node.completed .chapter-status{color:#55EFC4;}
+.chapter-node.current .chapter-status{color:var(--y);}
+.chapter-stars{font-size:.8rem;}
+
+/* Dialog box */
+.dialog-overlay{
+  display:none;position:fixed;inset:0;z-index:150;
+  background:rgba(0,0,0,.7);backdrop-filter:blur(4px);
+  flex-direction:column;justify-content:flex-end;
+  padding:0 0 5.5rem;
+}
+.dialog-overlay.show{display:flex;}
+.dialog-scene{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  padding:1rem;
+}
+.dialog-character{
+  font-size:6rem;text-align:center;
+  animation:charFloat 2s ease-in-out infinite;
+  filter:drop-shadow(0 0 20px rgba(255,217,61,.3));
+}
+@keyframes charFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.dialog-box{
+  background:linear-gradient(135deg,#1a1428,#0f0d20);
+  border:2px solid rgba(255,217,61,.4);border-radius:18px 18px 18px 4px;
+  padding:1rem 1.2rem;margin:0 1rem;position:relative;
+  box-shadow:0 -4px 20px rgba(255,217,61,.1);
+}
+.dialog-box.player-side{border-radius:18px 18px 4px 18px;border-color:rgba(0,206,201,.4);box-shadow:0 -4px 20px rgba(0,206,201,.1);}
+.dialog-speaker{font-size:.65rem;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:var(--y);margin-bottom:.3rem;}
+.dialog-box.player-side .dialog-speaker{color:var(--mi);}
+.dialog-text{font-size:.9rem;line-height:1.5;color:var(--txt);}
+.dialog-text .cursor{display:inline-block;width:2px;height:1em;background:var(--y);margin-left:2px;animation:blink .7s step-end infinite;vertical-align:middle;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.dialog-hint{font-size:.7rem;color:var(--muted);text-align:right;margin-top:.5rem;}
+.dialog-tap-area{position:absolute;inset:0;cursor:pointer;border-radius:18px;}
+
+/* Tutorial highlight */
+.tutorial-highlight{
+  position:fixed;z-index:140;
+  border:3px solid var(--y);border-radius:12px;
+  box-shadow:0 0 20px rgba(255,217,61,.6);
+  pointer-events:none;transition:all .4s;
+  animation:tutPulse 1.2s ease-in-out infinite;
+}
+@keyframes tutPulse{0%,100%{box-shadow:0 0 20px rgba(255,217,61,.4)}50%{box-shadow:0 0 40px rgba(255,217,61,.8)}}
+.tutorial-tip{
+  position:fixed;z-index:141;
+  background:rgba(255,217,61,.95);color:#000;
+  font-family:'Fredoka One',cursive;font-size:.85rem;
+  border-radius:12px;padding:.5rem .9rem;
+  max-width:260px;text-align:center;
+  box-shadow:0 4px 16px rgba(0,0,0,.4);
+  pointer-events:none; /* NEVER block clicks */
+}
+.tutorial-tip::before{
+  content:'💡 ';
+}
+
+/* Chapter result */
+.chapter-result{
+  display:none;position:fixed;inset:0;z-index:160;
+  background:rgba(0,0,0,.88);backdrop-filter:blur(10px);
+  align-items:center;justify-content:center;flex-direction:column;gap:1rem;padding:1.5rem;
+}
+.chapter-result.show{display:flex;}
+.chapter-result h2{font-family:'Fredoka One',cursive;font-size:2rem;text-align:center;}
+.chapter-result.win-result h2{color:var(--y);}
+.chapter-result.lose-result h2{color:var(--red);}
+.result-story-box{
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+  border-radius:14px;padding:1rem 1.2rem;max-width:340px;width:100%;
+}
+.result-story-text{font-size:.88rem;line-height:1.5;color:rgba(255,255,255,.8);font-style:italic;}
+.result-stars{font-size:2rem;letter-spacing:.3rem;margin:.3rem 0;}
+
+/* ═══════ PACKS SCREEN ═══════ */
+.packs-hero{text-align:center;padding:1.5rem 1rem .5rem;}
+.packs-hero h2{font-family:'Fredoka One',cursive;font-size:1.8rem;color:var(--y);}
+.packs-hero p{color:var(--muted);font-size:.85rem;margin-top:.3rem;}
+.packs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:1rem;
+  padding:1rem;max-width:700px;margin:0 auto;width:100%;}
+.pack-card{border-radius:18px;padding:1.2rem .8rem;text-align:center;cursor:pointer;
+  border:2px solid transparent;transition:transform .2s,box-shadow .2s;position:relative;}
+.pack-card:active{transform:scale(.95);}
+.pack-card:hover{transform:translateY(-4px);}
+.pack-icon{font-size:3rem;display:block;margin-bottom:.5rem;}
+.pack-name{font-weight:800;font-size:.88rem;font-family:'Fredoka One',cursive;}
+.pack-price{font-size:.75rem;font-weight:700;margin-top:.25rem;}
+.pack-count{font-size:.65rem;color:var(--muted);margin-top:.15rem;}
+.free-daily-pack{
+  margin:0 auto 1rem;max-width:340px;width:90%;
+  background:linear-gradient(135deg,#1a472a,#0d2e1a);
+  border:2px solid #2aaa6a;border-radius:18px;
+  padding:1.2rem;text-align:center;cursor:pointer;
+  transition:transform .2s;
+}
+.free-daily-pack:active{transform:scale(.97);}
+.free-daily-pack h3{font-family:'Fredoka One',cursive;font-size:1.2rem;color:#55EFC4;}
+.free-daily-pack p{font-size:.8rem;color:rgba(85,239,196,.7);margin-top:.2rem;}
+.free-daily-pack .free-timer{font-size:.72rem;color:var(--muted);margin-top:.5rem;}
+
+/* Pack open reveal */
+.pack-reveal-overlay{
+  display:none;position:fixed;inset:0;z-index:300;
+  background:rgba(0,0,0,.92);backdrop-filter:blur(10px);
+  flex-direction:column;align-items:center;justify-content:center;gap:1rem;
+}
+.pack-reveal-overlay.show{display:flex;}
+.pack-reveal-title{font-family:'Fredoka One',cursive;font-size:1.6rem;color:var(--y);}
+.pack-cards-row{display:flex;gap:.8rem;flex-wrap:wrap;justify-content:center;}
+.pack-card-slot{position:relative;}
+.pack-card-slot .bcard{
+  animation:cardReveal .5s cubic-bezier(.34,1.56,.64,1) both;
+}
+.pack-card-slot:nth-child(1) .bcard{animation-delay:.1s}
+.pack-card-slot:nth-child(2) .bcard{animation-delay:.3s}
+.pack-card-slot:nth-child(3) .bcard{animation-delay:.5s}
+@keyframes cardReveal{from{transform:rotateY(90deg) scale(.5);opacity:0}to{transform:rotateY(0) scale(1);opacity:1}}
+.pack-reveal-sub{color:var(--muted);font-size:.82rem;}
+.pack-reveal-close{
+  background:var(--pu);color:#fff;border:none;border-radius:30px;
+  padding:.6rem 2rem;font-family:'Nunito',sans-serif;font-size:.9rem;
+  font-weight:800;cursor:pointer;
+}
+
+/* ═══════ ALBUM SCREEN ═══════ */
+.album-header{padding:1rem 1rem .5rem;max-width:700px;margin:0 auto;width:100%;}
+.album-header h2{font-family:'Fredoka One',cursive;font-size:1.5rem;color:var(--y);}
+.album-progress{margin:.5rem 0;}
+.album-bar-bg{background:var(--surf);border-radius:8px;height:8px;overflow:hidden;}
+.album-bar-fill{height:100%;border-radius:8px;background:linear-gradient(90deg,var(--pu),var(--mi));transition:width .5s;}
+.album-pct{font-size:.72rem;color:var(--muted);text-align:right;margin-top:.2rem;}
+.album-section{padding:.5rem 1rem;max-width:700px;margin:0 auto;width:100%;}
+.album-rarity-label{
+  font-family:'Fredoka One',cursive;font-size:.85rem;letter-spacing:.5px;
+  display:flex;align-items:center;gap:.4rem;margin-bottom:.6rem;margin-top:.8rem;
+}
+.album-grid{display:flex;flex-wrap:wrap;gap:.6rem;}
+.album-slot{position:relative;}
+.album-slot .bcard{width:88px;height:110px;cursor:default;}
+.album-slot .bcard:hover{transform:none;}
+.album-slot .owned-check{
+  position:absolute;top:3px;right:3px;background:rgba(85,239,196,.9);
+  color:#000;font-size:.55rem;font-weight:900;border-radius:6px;
+  padding:1px 4px;z-index:10;
+}
+.album-slot .count-badge{
+  position:absolute;bottom:3px;left:3px;background:var(--y);
+  color:#000;font-size:.52rem;font-weight:900;border-radius:6px;
+  padding:1px 4px;z-index:10;
+}
+
+/* ═══════ MINI SCREEN ═══════ */
+.mini-hero{text-align:center;padding:1.2rem 1rem .5rem;}
+.mini-hero h2{font-family:'Fredoka One',cursive;font-size:1.6rem;color:var(--y);}
+.mini-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+  gap:.8rem;padding:0 1rem;max-width:700px;margin:0 auto;}
+.mini-card{background:var(--card);border-radius:16px;padding:1rem .8rem;text-align:center;
+  cursor:pointer;border:2px solid transparent;transition:transform .2s,box-shadow .2s;}
+.mini-card:active{transform:scale(.95);}
+.mini-card:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,.4);}
+
+/* ═══════ SOUND TOGGLE ═══════ */
+.sound-toggle{
+  background:none;border:1px solid rgba(255,255,255,.15);
+  border-radius:8px;padding:.2rem .5rem;color:var(--muted);
+  font-size:.85rem;cursor:pointer;
+}
+.sound-toggle.on{color:var(--y);border-color:rgba(255,217,61,.3);}
+
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+
+/* ═══════ ROCK FALL ANIMATION ═══════ */
+@keyframes dustBurst{
+  0%  {opacity:1;transform:scale(1);}
+  100%{opacity:0;transform:scale(1.8);}
+}
+@keyframes rockFall{
+  0%  {top:-120px;transform:translateX(-50%) rotate(0deg);opacity:1;}
+  80% {top:5px;transform:translateX(-50%) rotate(20deg);}
+  90% {top:-8px;transform:translateX(-50%) rotate(-5deg);}
+  100%{top:0px;transform:translateX(-50%) rotate(0deg);}
+}
+@keyframes rockLand{
+  0%  {transform:scale(1.4);}
+  60% {transform:scale(.85);}
+  100%{transform:scale(1);}
+}
+@keyframes rockShake{
+  0%  {transform:translateX(0);}
+  25% {transform:translateX(-4px);}
+  50% {transform:translateX(4px);}
+  75% {transform:translateX(-2px);}
+  100%{transform:translateX(0);}
+}
 </style>
 </head>
 <body>
@@ -395,25 +742,188 @@ html,body{height:100%;font-family:'Nunito',sans-serif;background:var(--bg);color
 </div>
 
 <!-- HOME -->
-<div class="screen" id="homeScreen">
+<!-- BATTLE INTRO OVERLAY -->
+<div class="battle-intro" id="battleIntro">
+  <div class="swords-wrap">
+    <span class="sword-left">⚔️</span>
+    <span class="clash-flash">✨</span>
+    <span class="sword-right">⚔️</span>
+  </div>
+  <h1>Card Battle</h1>
+</div>
+
+<!-- PACK REVEAL OVERLAY -->
+<div class="pack-reveal-overlay" id="packReveal">
+  <div class="pack-reveal-title" id="packRevealTitle">¡Sobre abierto!</div>
+  <div class="pack-cards-row" id="packRevealCards"></div>
+  <p class="pack-reveal-sub" id="packRevealSub"></p>
+  <button class="pack-reveal-close" onclick="closePackReveal()">¡Genial! →</button>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav" id="bottomNav">
+  <div class="nav-items">
+    <button class="nav-item" id="nav-story" onclick="switchTab('story')">
+      <span class="nav-icon">📜<span class="nav-badge" id="storyBadge" style="display:none">!</span></span>
+      <span class="nav-label">Historia</span>
+    </button>
+    <button class="nav-item" id="nav-battle" onclick="switchTab('battle')">
+      <span class="nav-icon">⚔️</span>
+      <span class="nav-label">Batalla</span>
+    </button>
+    <button class="nav-item" id="nav-mini" onclick="switchTab('mini')">
+      <span class="nav-icon">🎮</span>
+      <span class="nav-label">Minijuegos</span>
+    </button>
+    <button class="nav-item" id="nav-packs" onclick="switchTab('packs')">
+      <span class="nav-icon">📦<span class="nav-badge" id="freePackBadge">!</span></span>
+      <span class="nav-label">Sobres</span>
+    </button>
+    <button class="nav-item" id="nav-album" onclick="switchTab('album')">
+      <span class="nav-icon">📖</span>
+      <span class="nav-label">Álbum</span>
+    </button>
+    <button class="nav-item" id="nav-setup" onclick="switchTab('setup')">
+      <span class="nav-icon">⚙️</span>
+      <span class="nav-label">Cartas</span>
+    </button>
+  </div>
+</nav>
+
+<!-- TAB: HISTORIA -->
+<div id="tabStory">
+  <div class="story-bg"></div>
+  <div class="story-stars" id="storyStars"></div>
+  <div class="topbar" style="position:relative;z-index:2;">
+    <span class="logo">📜 Modo Historia</span>
+    <div class="coins-pill">🪙 <span id="coinsStoryTab">0</span></div>
+  </div>
+  <div style="position:relative;z-index:1;padding:.8rem 1rem 0;max-width:420px;margin:0 auto;width:100%;text-align:center;">
+    <div style="font-family:'Fredoka One',cursive;font-size:.8rem;color:var(--muted);letter-spacing:1px;margin-bottom:.2rem;">LA SAGA DE LAS CARTAS PERDIDAS</div>
+    <div style="font-size:.75rem;color:var(--muted);">Capítulo <span id="storyProgress">1</span>/5</div>
+  </div>
+  <div class="chapter-map">
+    <div class="chapter-path" id="chapterPath"></div>
+  </div>
+</div>
+
+<!-- DIALOG OVERLAY -->
+<div class="dialog-overlay" id="dialogOverlay">
+  <div class="dialog-scene" id="dialogScene">
+    <div class="dialog-character" id="dialogChar">🧙</div>
+  </div>
+  <div id="dialogBoxWrap" style="padding:0 .5rem">
+    <div class="dialog-box" id="dialogBox">
+      <div class="dialog-speaker" id="dialogSpeaker">SIR ALDRIC</div>
+      <div class="dialog-text" id="dialogText"></div>
+      <div class="dialog-hint">Toca para continuar...</div>
+      <div class="dialog-tap-area" onclick="advanceDialog()"></div>
+    </div>
+  </div>
+</div>
+
+<!-- CHAPTER RESULT -->
+<div class="chapter-result" id="chapterResult">
+  <div style="font-size:4rem" id="chapterResultIcon">🏆</div>
+  <h2 id="chapterResultTitle">¡Misión completada!</h2>
+  <div class="result-stars" id="chapterResultStars">⭐⭐⭐</div>
+  <div class="result-story-box">
+    <div class="result-story-text" id="chapterResultText"></div>
+  </div>
+  <div style="display:flex;gap:.8rem;flex-wrap:wrap;justify-content:center;margin-top:.5rem">
+    <button class="deck-start-btn" onclick="closeChapterResult()" style="font-size:.9rem;padding:.7rem 1.8rem">Continuar →</button>
+  </div>
+</div>
+
+<!-- TAB: BATTLE -->
+<div id="tabBattle">
   <div class="topbar">
     <span class="logo">✦ English with Daryna</span>
     <div style="display:flex;gap:.4rem;align-items:center">
-      <button class="hud-back" onclick="showSetup()">⚙ Cartas</button>
+      <button class="sound-toggle" id="soundToggleBtn" onclick="toggleSound()">🔊</button>
       <div class="coins-pill">🪙 <span id="coinsHome">0</span></div>
     </div>
   </div>
-  <div class="page-body">
-    <p class="slbl">⚔ Actividades</p>
-    <div class="home-grid" id="homeGrid"></div>
-    <p class="slbl">📦 Sobres</p>
-    <div class="env-grid" id="envGrid"></div>
-    <p class="slbl">✦ Mi Colección</p>
-    <div class="coll-bar-bg"><div class="coll-bar-fill" id="collBar" style="width:0%"></div></div>
-    <div class="coll-pct" id="collPct"></div>
-    <div class="coll-wrap" id="collWrap"></div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem;padding:1.5rem;">
+    <div style="text-align:center;">
+      <div style="font-size:5rem;margin-bottom:.5rem;animation:float 3s ease-in-out infinite">⚔️</div>
+      <h2 style="font-family:'Fredoka One',cursive;font-size:2rem;color:var(--y);text-shadow:0 0 30px rgba(255,217,61,.4)">Card Battle</h2>
+      <p style="color:var(--muted);font-size:.85rem;margin-top:.3rem">Elige tu modo de juego</p>
+    </div>
+    <div class="mode-btns" style="flex-direction:column;width:100%;max-width:300px;">
+      <button class="mode-btn vs-ai" style="width:100%;padding:1rem;" onclick="openBattleIntro('ai')">🤖 vs IA<span class="mode-sub">Tú contra la inteligencia artificial</span></button>
+      <button class="mode-btn vs-pvp" style="width:100%;padding:1rem;" onclick="openBattleIntro('pvp')">👥 PvP Local<span class="mode-sub">2 jugadores en 1 pantalla</span></button>
+      <button class="mode-btn vs-online" style="width:100%;padding:1rem;" onclick="openBattleIntro('online')">📱 Online<span class="mode-sub">Cada uno en su móvil</span></button>
+    </div>
+    <div style="font-size:.72rem;color:var(--muted);text-align:center">
+      Tus cartas en colección: <span id="battleCardCount" style="color:var(--y);font-weight:800">0</span>
+    </div>
   </div>
 </div>
+
+<!-- TAB: MINIJUEGOS -->
+<div id="tabMini">
+  <div class="topbar">
+    <span class="logo">🎮 Minijuegos</span>
+    <div class="coins-pill">🪙 <span id="coinsMiniTab">0</span></div>
+  </div>
+  <div class="mini-hero"><h2>Gana monedas</h2><p style="color:var(--muted);font-size:.82rem">Juega y acumula para abrir sobres</p></div>
+  <div class="mini-grid" id="miniGrid"></div>
+</div>
+
+<!-- TAB: SOBRES -->
+<div id="tabPacks">
+  <div class="topbar">
+    <span class="logo">📦 Sobres</span>
+    <div class="coins-pill">🪙 <span id="coinsPacksTab">0</span></div>
+  </div>
+  <div style="padding:.8rem 1rem 0;max-width:700px;margin:0 auto;width:100%">
+    <!-- Free daily pack -->
+    <div class="free-daily-pack" id="freeDailyPack" onclick="openFreePack()">
+      <h3>🎁 Pull Gratuito — 10 Cartas</h3>
+      <p>10 cartas aleatorias gratis. ¡Siempre disponible!</p>
+      <div class="free-timer" id="freePackTimer"></div>
+    </div>
+  </div>
+  <div class="packs-grid" id="packsGrid"></div>
+</div>
+
+<!-- TAB: ÁLBUM -->
+<div id="tabAlbum">
+  <div class="topbar">
+    <span class="logo">📖 Álbum</span>
+    <div class="coins-pill">🪙 <span id="coinsAlbumTab">0</span></div>
+  </div>
+  <div class="album-header">
+    <h2>Mi Colección</h2>
+    <div class="album-progress">
+      <div class="album-bar-bg"><div class="album-bar-fill" id="albumBar" style="width:0%"></div></div>
+      <div class="album-pct" id="albumPct">0 / 0</div>
+    </div>
+  </div>
+  <div id="albumContent"></div>
+</div>
+
+<!-- TAB: SETUP (cartas) -->
+<div id="tabSetup">
+  <div class="topbar">
+    <span class="logo">⚙️ Mis Cartas</span>
+  </div>
+  <div class="setup-body" style="max-width:680px;margin:0 auto;padding:1rem 1rem 5rem;width:100%">
+    <div class="upload-zone">
+      <input type="file" id="fileInput" accept="image/*" multiple onchange="handleFiles(this.files)">
+      <span class="uz-icon">🖼️</span>
+      <strong>Arrastra imágenes o haz clic</strong>
+      <p>5–10 imágenes · JPG PNG WebP · Se comprimen automáticamente</p>
+    </div>
+    <div class="pending-list" id="pendingList"></div>
+    <p class="setup-msg" id="setupMsg">Sube al menos 5 imágenes</p>
+    <button class="gen-btn" id="genBtn" disabled onclick="buildCollection()">✦ Crear Colección</button>
+  </div>
+</div>
+
+<!-- Keep old homeScreen hidden for compat -->
+<div class="screen" id="homeScreen" style="display:none!important"></div>
 
 <!-- BATTLE -->
 <div class="screen" id="battleScreen">
@@ -725,14 +1235,24 @@ function checkGenBtn(){
 }
 function buildCollection(){
   if(pendingFiles.length<5){alert('Mínimo 5 imágenes');return;}
-  CATALOG=[...pendingFiles];
+  // Merge new cards with existing, removing old demo cards
+  const realCards=pendingFiles;
+  CATALOG=realCards;
+  // Reset demo ownership but keep real card ownership
+  Object.keys(STATE.owned).forEach(id=>{
+    if(id.startsWith('demo_'))delete STATE.owned[id];
+  });
   try{
     saveCatalog(); saveState();
   }catch(e){
-    alert('Las imágenes ocupan demasiado espacio. Prueba con imágenes más pequeñas o menos imágenes.');
+    alert('Las imágenes ocupan demasiado espacio. Prueba con imágenes más pequeñas.');
     return;
   }
-  showHome();
+  pendingFiles=[];
+  $('pendingList').innerHTML='';
+  checkGenBtn();
+  showMainUI();
+  switchTab('album');
 }
 function showSetup(){showScreen('setupScreen');}
 
@@ -966,12 +1486,56 @@ function confirmDeck(){
 }
 function initBattle(){
   ROCKS=genRocks();
-  board=Array(16).fill(null); ROCKS.forEach(i=>board[i]='rock');
+  board=Array(16).fill(null);
   blueHand=[...blueInsts].sort(()=>Math.random()-.5);
   redHand=[...redInsts].sort(()=>Math.random()-.5);
-  selectedInst=null; currentTurn='blue'; battleLocked=false;
+  // 50/50 who goes first — story mode always blue first
+  let blueFirst=_storyForceBlueFirst?true:(Math.random()<.5);
+  if(_storyForceBlueFirst) _storyForceBlueFirst=false;
+  selectedInst=null; currentTurn=blueFirst?'blue':'red'; battleLocked=true;
   $('deckScreen').style.display='none'; $('battleArea').style.display='flex';
   renderBattle();
+  // Show "who goes first" banner briefly
+  showFirstTurnBanner(blueFirst, ()=>{
+    // Then animate rocks falling
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      const bg=$('boardGrid');
+      if(bg) Array.from(bg.children).forEach((c,i)=>c.dataset.idx=i);
+      animateRocksFalling(ROCKS, ()=>{
+        ROCKS.forEach(i=>board[i]='rock');
+        battleLocked=false;
+        renderBattle();
+        // If red goes first, trigger AI (works for both 'ai' and 'story' modes)
+        if(!blueFirst && (battleMode==='ai'||battleMode==='story')) setTimeout(aiPlay, 700);
+      });
+    }));
+  });
+}
+
+function showFirstTurnBanner(blueFirst, cb){
+  const banner=document.createElement('div');
+  const who=blueFirst
+    ?(battleMode==='ai'?'¡Tú empiezas!':'¡Empieza el Azul!')
+    :(battleMode==='ai'?'¡Empieza el enemigo!':'¡Empieza el Rojo!');
+  const col=blueFirst?'var(--blue)':'var(--red)';
+  banner.style.cssText=`
+    position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+    z-index:80;background:rgba(7,7,15,.95);
+    border:2px solid ${col};border-radius:18px;
+    padding:1.2rem 2.5rem;text-align:center;
+    animation:popIn .35s cubic-bezier(.34,1.56,.64,1);
+    pointer-events:none;
+  `;
+  banner.innerHTML=`
+    <div style="font-size:2rem;margin-bottom:.3rem">${blueFirst?'🔵':'🔴'}</div>
+    <div style="font-family:'Fredoka One',cursive;font-size:1.3rem;color:${col}">${who}</div>
+  `;
+  document.body.appendChild(banner);
+  // Play a dice-roll sound
+  playTone(600,'sine',.08,.2);
+  playTone(800,'sine',.08,.2,.1);
+  playTone(blueFirst?1000:400,'sine',.15,.3,.2);
+  setTimeout(()=>{banner.remove(); cb();}, 1400);
 }
 
 // ── RENDER ──
@@ -981,9 +1545,10 @@ function renderBattle(){
   board.forEach(c=>{if(c&&c!=='rock'){if(c.team==='blue')blue++;else red++;}});
   $('scoreBlue').textContent=blue; $('scoreRed').textContent=red;
   const myTeamOnline=onlineRole==='host'?'blue':'red';
+  const isStory=battleMode==='story';
   $('turnLabel').textContent=currentTurn==='blue'
-    ?(battleMode==='pvp'?'Turno Azul':battleMode==='online'?(currentTurn===myTeamOnline?'Tu turno (Azul)':'Rival pensando...'):'Tu turno')
-    :(battleMode==='pvp'?'Turno Rojo':battleMode==='online'?(currentTurn===myTeamOnline?'Tu turno (Rojo)':'Rival pensando...'):'IA pensando...');
+    ?(battleMode==='pvp'?'Turno Azul':battleMode==='online'?(currentTurn===myTeamOnline?'Tu turno (Azul)':'Rival pensando...'):(isStory?'⚔️ Tu turno':'Tu turno'))
+    :(battleMode==='pvp'?'Turno Rojo':battleMode==='online'?(currentTurn===myTeamOnline?'Tu turno (Rojo)':'Rival pensando...'):(isStory?'🤔 IA pensando...':'IA pensando...'));
 
   const bg=$('boardGrid'); bg.innerHTML='';
   for(let i=0;i<16;i++){
@@ -995,8 +1560,8 @@ function renderBattle(){
     }else if(c){
       const el=buildCard(c.inst,{team:c.team,size:90}); cell.appendChild(el);
     }else{
-      const aiTurn=battleMode==='ai'&&currentTurn==='red';
-      const myTurn=(currentTurn==='blue')||(battleMode==='pvp'&&currentTurn==='red');
+      const aiTurn=(battleMode==='ai'||battleMode==='story')&&currentTurn==='red';
+      const myTurn=(currentTurn==='blue')||(battleMode==='pvp'&&currentTurn==='red')||(battleMode==='online'&&((onlineRole==='blue'&&currentTurn==='blue')||(onlineRole==='guest'&&currentTurn==='red')));
       if(myTurn&&selectedInst&&!aiTurn&&!battleLocked){
         cell.classList.add('can-place');
         const idx=i; cell.onclick=()=>placeCard(idx);
@@ -1016,7 +1581,7 @@ function renderBattle(){
   blueHand.forEach(inst=>{
     const isSel=selectedInst&&selectedInst.iid===inst.iid;
     const el=buildCard(inst,{size:82,selected:isSel});
-    const canClickBlue=(currentTurn==='blue'&&!battleLocked)&&(battleMode!=='online'||onlineRole==='host');
+    const canClickBlue=(currentTurn==='blue'&&!battleLocked)&&(battleMode==='ai'||battleMode==='story'||battleMode==='pvp'||(battleMode==='online'&&onlineRole==='host'));
     if(canClickBlue){
       el.classList.add('clickable');
       el.onclick=()=>{selectedInst=isSel?null:inst; renderBattle();};
@@ -1027,19 +1592,34 @@ function renderBattle(){
 
   const rp=document.createElement('div'); rp.className='hand-panel';
   const rl=document.createElement('div'); rl.className='hand-label red';
-  rl.textContent=battleMode==='pvp'?'Jugador Rojo':'Enemigo'; rp.appendChild(rl);
+  rl.textContent=battleMode==='pvp'?'🔴 Jugador Rojo':'🔴 Enemigo'; rp.appendChild(rl);
   const rr=document.createElement('div'); rr.className='hand-cards-row';
-  redHand.forEach(inst=>{
-    const isSel=selectedInst&&selectedInst.iid===inst.iid;
-    const facedown=battleMode==='ai';
-    const el=buildCard(inst,{size:82,facedown,selected:isSel&&!facedown});
-    const canClickRed=(battleMode==='pvp'&&currentTurn==='red'&&!battleLocked)||(battleMode==='online'&&onlineRole==='guest'&&currentTurn==='red'&&!battleLocked);
-    if(canClickRed){
-      el.classList.add('clickable');
-      el.onclick=()=>{selectedInst=isSel?null:inst; renderBattle();};
-    }
-    rr.appendChild(el);
-  });
+  if(battleMode==='ai'||battleMode==='story'){
+    redHand.forEach(()=>{
+      const el=document.createElement('div');
+      el.className='bcard facedown';
+      el.style.cssText='width:60px;height:75px;grid-template-columns:12px 1fr 12px;grid-template-rows:12px 1fr 12px;opacity:.8;cursor:not-allowed;';
+      // 9 zone cells
+      for(let z=0;z<9;z++){const d=document.createElement('div');d.style.cssText='background:#1a1a30;';el.appendChild(d);}
+      rr.appendChild(el);
+    });
+    // Card count badge
+    const cnt=document.createElement('div');
+    cnt.style.cssText='font-size:.75rem;color:var(--muted);text-align:center;margin-top:.3rem;font-weight:700;';
+    cnt.textContent=redHand.length+' carta'+(redHand.length!==1?'s':'')+' oculta'+(redHand.length!==1?'s':'');
+    rp.appendChild(cnt);
+  } else {
+    redHand.forEach(inst=>{
+      const isSel=selectedInst&&selectedInst.iid===inst.iid;
+      const el=buildCard(inst,{size:82,selected:isSel});
+      const canClickRed=(battleMode==='pvp'&&currentTurn==='red'&&!battleLocked)||(battleMode==='online'&&onlineRole==='guest'&&currentTurn==='red'&&!battleLocked);
+      if(canClickRed){
+        el.classList.add('clickable');
+        el.onclick=()=>{selectedInst=isSel?null:inst; renderBattle();};
+      }
+      rr.appendChild(el);
+    });
+  }
   rp.appendChild(rr); ha.appendChild(rp);
 }
 
@@ -1053,6 +1633,8 @@ function placeCard(cellIdx){
   if(team==='blue')blueHand=blueHand.filter(c=>c.iid!==selectedInst.iid);
   else redHand=redHand.filter(c=>c.iid!==selectedInst.iid);
   selectedInst=null;
+  SFX.place();
+  if(battleMode==='story'){fireTutorialTrigger('placed');removeTutorialHighlight();}
   renderBattle();
 
   const events=computeCaptures(cellIdx,team);
@@ -1063,7 +1645,7 @@ function placeCard(cellIdx){
     if(blueHand.length===0&&redHand.length===0){endBattle();return;}
     currentTurn=currentTurn==='blue'?'red':'blue';
     renderBattle();
-    if(battleMode==='ai'&&currentTurn==='red')setTimeout(aiPlay,600);
+    if((battleMode==='ai'||battleMode==='story')&&currentTurn==='red')setTimeout(aiPlay,600);
   });
 }
 
@@ -1179,10 +1761,12 @@ function playBattleAnimations(events,placedIdx,attackerTeam,done){
       const placedEl=getCardElInCell(placedIdx);
       const targetEl=getCardElInCell(ev.idx);
       if(ev.type==='direct'){
+        SFX.capture();
         if(placedEl&&ev.fA){const az=placedEl.querySelector('.az-'+ev.fA);if(az){az.classList.add('flash-atk');setTimeout(()=>az.classList.remove('flash-atk'),500);}}
         if(targetEl){targetEl.classList.add('combat-direct');setTimeout(()=>targetEl.classList.remove('combat-direct'),500);}
         floatNumber(ev.idx,'CAPTURA','#00ff88');
       }else if(ev.type==='win'||ev.type==='lose'){
+        if(ev.type==='win') SFX.win(); else SFX.lose();
         if(placedEl&&ev.fA){const az=placedEl.querySelector('.az-'+ev.fA);if(az){az.classList.add('flash-atk');setTimeout(()=>az.classList.remove('flash-atk'),500);}}
         if(targetEl&&ev.fB){const az=targetEl.querySelector('.az-'+ev.fB);if(az){az.classList.add('flash-def');setTimeout(()=>az.classList.remove('flash-def'),500);}}
         setTimeout(()=>{
@@ -1199,6 +1783,7 @@ function playBattleAnimations(events,placedIdx,attackerTeam,done){
             ev.type==='win'?'#FFD93D':'#ff4444');
         },180);
       }else if(ev.type==='chain'){
+        SFX.combo();
         if(targetEl){targetEl.classList.add('chain-flash');setTimeout(()=>targetEl.classList.remove('chain-flash'),500);}
         const srcEl=getCardElInCell(ev.chainFrom);
         if(srcEl&&ev.dir){const facing=DIR_FACING[ev.dir];if(facing){const az=srcEl.querySelector('.az-'+facing.a);if(az){az.classList.add('flash-atk');setTimeout(()=>az.classList.remove('flash-atk'),400);}}}
@@ -1237,9 +1822,21 @@ function aiPlay(){
 
 // ── END ──
 function endBattle(){
+  // Story mode intercept
+  if(battleMode==='story'){
+    let blue=0,red=0;
+    board.forEach(c=>{if(c&&c!=='rock'){if(c.team==='blue')blue++;else red++;}});
+    const win=blue>red;
+    const ch=CHAPTERS[storyChapterId];
+    if(ch) showDialogs(ch.mid,()=>endStoryBattle(win));
+    else endStoryBattle(win);
+    return;
+  }
   let blue=0,red=0;
   board.forEach(c=>{if(c&&c!=='rock'){if(c.team==='blue')blue++;else red++;}});
   const win=blue>red,draw=blue===red;
+  stopCombatMusic();
+  startBgMusic();
   $('resultTitle').textContent=draw?'Empate!':win?'Victoria!':battleMode==='pvp'?'Gana el Rojo!':'Derrota!';
   $('resultTitle').className='result-title '+(draw?'draw':win?'win':'lose');
   $('resultSub').textContent='Azul '+blue+' vs Rojo '+red;
@@ -1277,6 +1874,8 @@ function pickCard(inst){
 // ══════════════════════ MINIGAMES ══════════════════════
 let curMini=null,curDiff=null,rafId=null,timerInt=null,score=0,lives=3,timeLeft=30;
 function openMini(id){
+  SFX.tap();
+  $('bottomNav').classList.remove('visible');
   curMini=id;const def=MINI_DEF[id];
   $('diffTitle').textContent={catch:'🪣 Atrapa Monedas',space:'🚀 Space Shooter',mole:'🔨 Whack-a-Mole',dodge:'⚡ Esquiva'}[id];
   $('drE').textContent=def.rewards.easy;$('drM').textContent=def.rewards.medium;$('drH').textContent=def.rewards.hard;
@@ -1284,20 +1883,24 @@ function openMini(id){
   $('goOverlay').classList.remove('show');showScreen('miniScreen');
 }
 function startMini(diff){
+  SFX.select();
   curDiff=diff;score=0;lives=3;timeLeft=diff==='easy'?40:diff==='medium'?30:20;
   $('diffPicker').style.display='none';$('goOverlay').classList.remove('show');
   if(curMini==='mole')initMole();else initCanvas();
   if(timerInt)clearInterval(timerInt);
   timerInt=setInterval(()=>{timeLeft--;$('hTime').textContent=timeLeft;$('mTime').textContent=timeLeft;if(timeLeft<=0)endMini();},1000);
 }
-function retryMini(){startMini(curDiff);}
+function retryMini(){SFX.select();startMini(curDiff);}
 function stopMini(){if(rafId){cancelAnimationFrame(rafId);rafId=null;}if(timerInt){clearInterval(timerInt);timerInt=null;}clearMoleTimers();}
 function endMini(){
   stopMini();const base=MINI_DEF[curMini].rewards[curDiff];
   let earned=Math.max(Math.round(base*.2),Math.min(base,Math.round(base*(score/Math.max(score+3,1))*1.8+base*.25)));
   STATE.coins+=earned;saveState();updateCoins();
   $('goEarned').textContent='+'+earned+' 🪙';$('goScore').textContent='Puntuación: '+score;
-  $('goOverlay').classList.add('show');if(earned>=base*.7)confetti();
+  $('goOverlay').classList.add('show');
+  if(earned>=base*.7)confetti();
+  SFX.coin();
+  $('bottomNav').classList.add('visible');
 }
 let ctx,CW=520,CH=460,px=260,keys={},touchX=0,catchItems=[],bullets=[],asteroids=[],obstacles=[],shootCD=0;
 function initCanvas(){
@@ -1679,14 +2282,23 @@ function initOnlineBattle(){
   }
   // Small delay to ensure rocks message arrives before board init
   setTimeout(()=>{
-    board=Array(16).fill(null); ROCKS.forEach(i=>board[i]='rock');
+    board=Array(16).fill(null);
     blueHand=[...blueInsts].sort(()=>Math.random()-.5);
     redHand=[...redInsts].sort(()=>Math.random()-.5);
-    currentTurn='blue'; // host (blue) goes first
-    selectedInst=null; battleLocked=false;
+    currentTurn='blue';
+    selectedInst=null; battleLocked=true;
     $('deckScreen').style.display='none';
     $('battleArea').style.display='flex';
     renderBattle();
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      const bg=$('boardGrid');
+      if(bg) Array.from(bg.children).forEach((c,i)=>c.dataset.idx=i);
+      animateRocksFalling(ROCKS,()=>{
+        ROCKS.forEach(i=>board[i]='rock');
+        battleLocked=false;
+        renderBattle();
+      });
+    }));
   }, onlineRole==='host'?200:600);
 }
 
@@ -1742,7 +2354,1065 @@ function placeCardOnline(cellIdx){
   });
 }
 
-if(CATALOG.length>0)showHome();else showScreen('setupScreen');
+
+
+// ══════════════════════════════════════════════════
+// ════════════ DEMO CARDS (no upload needed) ═══════
+// ══════════════════════════════════════════════════
+const DEMO_CARDS=[
+  {id:'demo_1',name:'Fire Lion',   emoji:'🦁',rarity:'rare',     img:''},
+  {id:'demo_2',name:'Ice Wolf',    emoji:'🐺',rarity:'uncommon', img:''},
+  {id:'demo_3',name:'Storm Eagle', emoji:'🦅',rarity:'epic',     img:''},
+  {id:'demo_4',name:'Earth Bear',  emoji:'🐻',rarity:'common',   img:''},
+  {id:'demo_5',name:'Sea Dragon',  emoji:'🐉',rarity:'legendary',img:''},
+  {id:'demo_6',name:'Sun Fox',     emoji:'🦊',rarity:'uncommon', img:''},
+  {id:'demo_7',name:'Moon Owl',    emoji:'🦉',rarity:'rare',     img:''},
+  {id:'demo_8',name:'Thunder Cat', emoji:'🐯',rarity:'common',   img:''},
+  {id:'demo_9',name:'Crystal Deer',emoji:'🦌',rarity:'rare',     img:''},
+  {id:'demo_10',name:'Shadow Raven',emoji:'🐦‍⬛',rarity:'epic', img:''},
+];
+
+function ensureDemoCards(){
+  if(CATALOG.length>0) return; // real cards exist
+  CATALOG=[...DEMO_CARDS];
+  // Give player some owned demo cards to start with
+  DEMO_CARDS.forEach((c,i)=>{
+    if(!STATE.owned[c.id]) STATE.owned[c.id]={count: i<5?1:0};
+  });
+}
+
+// ══════════════════════════════════════════════════
+// ════════════ SOUND ENGINE ═══════════════════════
+// ══════════════════════════════════════════════════
+let audioCtx=null;
+let soundEnabled=true;
+
+function getAudio(){
+  if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playTone(freq,type,dur,vol,delay=0){
+  if(!soundEnabled)return;
+  try{
+    const ac=getAudio();
+    const o=ac.createOscillator();
+    const g=ac.createGain();
+    o.connect(g);g.connect(ac.destination);
+    o.type=type||'sine';
+    o.frequency.setValueAtTime(freq,ac.currentTime+delay);
+    o.frequency.exponentialRampToValueAtTime(freq*.5,ac.currentTime+delay+dur*.8);
+    g.gain.setValueAtTime(vol||.3,ac.currentTime+delay);
+    g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+delay+dur);
+    o.start(ac.currentTime+delay);
+    o.stop(ac.currentTime+delay+dur);
+  }catch(e){}
+}
+
+function playNoise(dur,vol,delay=0){
+  if(!soundEnabled)return;
+  try{
+    const ac=getAudio();
+    const buf=ac.createBuffer(1,ac.sampleRate*dur,ac.sampleRate);
+    const data=buf.getChannelData(0);
+    for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1);
+    const src=ac.createBufferSource();
+    const g=ac.createGain();
+    src.buffer=buf;src.connect(g);g.connect(ac.destination);
+    g.gain.setValueAtTime(vol||.2,ac.currentTime+delay);
+    g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+delay+dur*.8);
+    src.start(ac.currentTime+delay);
+  }catch(e){}
+}
+
+const SFX={
+  tap:      ()=>{playTone(800,'sine',.08,.15);},
+  select:   ()=>{playTone(600,'sine',.06,.12);playTone(900,'sine',.08,.12,.07);},
+  place:    ()=>{playTone(300,'square',.1,.18);playTone(500,'sine',.15,.12,.05);},
+  capture:  ()=>{playTone(400,'sawtooth',.05,.15);playTone(600,'sawtooth',.12,.2,.06);},
+  win:      ()=>{[523,659,784,1047].forEach((f,i)=>playTone(f,'sine',.25,.25,i*.12));},
+  lose:     ()=>{[400,350,300,250].forEach((f,i)=>playTone(f,'square',.2,.15,i*.1));},
+  combo:    ()=>{[800,1000,1200].forEach((f,i)=>playTone(f,'sawtooth',.15,.2,i*.08));},
+  openPack: ()=>{playNoise(.05,.3);playTone(600,'sine',.3,.3,.05);playTone(900,'sine',.4,.25,.15);playTone(1200,'sine',.3,.2,.3);},
+  epic:     ()=>{[392,494,587,784].forEach((f,i)=>playTone(f,'square',.2,.3,i*.1));playTone(1568,'sine',.4,.35,.5);},
+  legendary:()=>{playNoise(.1,.4);[523,659,784,1047,1319].forEach((f,i)=>playTone(f,'sawtooth',.3,.35,i*.1+.1));},
+  clash:    ()=>{
+    playNoise(.08,.5);
+    [200,400,600].forEach((f,i)=>playTone(f,'square',.3,.4,i*.03));
+    [800,1000].forEach((f,i)=>playTone(f,'sawtooth',.2,.3,i*.05+.1));
+  },
+  menuEnter:()=>{
+    playNoise(.15,.35);
+    [261,329,392,523].forEach((f,i)=>playTone(f,'sine',.35,.4,i*.08));
+    playTone(1047,'sine',.5,.45,.4);
+  },
+  tabSwitch:()=>{playTone(700,'sine',.07,.1);},
+  coin:     ()=>{playTone(1200,'sine',.12,.2);playTone(1500,'sine',.1,.15,.08);},
+};
+
+function toggleSound(){
+  soundEnabled=!soundEnabled;
+  const btn=$('soundToggleBtn');
+  if(btn){btn.textContent=soundEnabled?'🔊':'🔇';btn.className='sound-toggle'+(soundEnabled?' on':'');}
+  SFX.tap();
+}
+
+// ══════════════════════════════════════════════════
+// ════════════ MEDIEVAL BACKGROUND MUSIC ══════════
+// ══════════════════════════════════════════════════
+// Medieval pentatonic melody in D minor (Dorian)
+// Notes: D3 E3 F3 G3 A3 C4 D4
+const MEDIEVAL_MELODY=[
+  // [freq, duration_beats, volume]
+  [293,1,.06],[329,1,.05],[349,2,.07],[293,1,.05],
+  [261,1,.06],[293,2,.08],[329,1,.05],[349,1,.06],
+  [392,2,.08],[349,1,.06],[329,1,.05],[293,2,.07],
+  [261,1,.05],[293,1,.06],[329,1,.06],[261,2,.07],
+  [293,1,.05],[349,2,.07],[392,1,.06],[440,1,.05],
+  [392,2,.08],[349,1,.06],[329,2,.07],[293,1,.05],
+];
+// Drone/bass notes
+const MEDIEVAL_DRONE=[146,195,220,146];
+let bgMusicInterval=null;
+let bgMelodyIdx=0;
+let bgDroneIdx=0;
+let bgPlaying=false;
+let bgBeat=0;
+const BPM=72;
+const BEAT_MS=60000/BPM;
+
+function playMedievalNote(freq,dur,vol,delay=0,type='sine'){
+  if(!soundEnabled)return;
+  try{
+    const ac=getAudio();
+    const o=ac.createOscillator();
+    const g=ac.createGain();
+    // Add slight vibrato for medieval feel
+    const vib=ac.createOscillator();
+    const vibGain=ac.createGain();
+    vib.frequency.value=5;vibGain.gain.value=3;
+    vib.connect(vibGain);vibGain.connect(o.frequency);
+    o.connect(g);g.connect(ac.destination);
+    o.type=type;
+    o.frequency.setValueAtTime(freq,ac.currentTime+delay);
+    g.gain.setValueAtTime(0,ac.currentTime+delay);
+    g.gain.linearRampToValueAtTime(vol,ac.currentTime+delay+.05);
+    g.gain.setValueAtTime(vol,ac.currentTime+delay+dur*.7);
+    g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+delay+dur);
+    o.start(ac.currentTime+delay);
+    vib.start(ac.currentTime+delay);
+    o.stop(ac.currentTime+delay+dur);
+    vib.stop(ac.currentTime+delay+dur);
+  }catch(e){}
+}
+
+// ══════════════════════════════════════════════════
+// ════════════ COMBAT MUSIC ════════════════════════
+// ══════════════════════════════════════════════════
+// Fast aggressive repeating pattern
+let combatInterval=null;
+let combatPlaying=false;
+let combatBeat=0;
+
+// Aggressive minor scale: A2 C3 D3 E3 G3 A3
+const COMBAT_BASS=[110,131,147,165,196,220,196,165,147,131];
+const COMBAT_HIGH=[440,523,587,659,784,880,784,659,587,523];
+
+function startCombatMusic(){
+  stopCombatMusic();
+  if(!soundEnabled)return;
+  combatPlaying=true;
+  combatBeat=0;
+  const BPM_COMBAT=140;
+  const BEAT=60000/BPM_COMBAT;
+
+  function tick(){
+    if(!combatPlaying||!soundEnabled)return;
+    const b=combatBeat;
+
+    // Driving bass line
+    const bassNote=COMBAT_BASS[b%COMBAT_BASS.length];
+    playTone(bassNote,'square',BEAT*.45/1000,.12);
+
+    // High aggressive melody every 2 beats
+    if(b%2===0){
+      const hiNote=COMBAT_HIGH[Math.floor(b/2)%COMBAT_HIGH.length];
+      playTone(hiNote,'sawtooth',BEAT*.3/1000,.07);
+    }
+
+    // Drum kick every 4 beats
+    if(b%4===0){
+      playNoise(.06,.3);
+      playTone(80,'sine',.1,.25);
+    }
+    // Snare every 4 beats offset by 2
+    if(b%4===2){
+      playNoise(.04,.2);
+    }
+    // Hi-hat every beat
+    playNoise(.02,.08);
+
+    combatBeat++;
+    combatInterval=setTimeout(tick,BEAT);
+  }
+  tick();
+}
+
+function stopCombatMusic(){
+  combatPlaying=false;
+  if(combatInterval){clearTimeout(combatInterval);combatInterval=null;}
+}
+
+function startBgMusic(){
+  if(bgPlaying||!soundEnabled)return;
+  bgPlaying=true;
+  bgMelodyIdx=0; bgDroneIdx=0; bgBeat=0;
+
+  function tick(){
+    if(!soundEnabled||!bgPlaying) return;
+    const beatDur=BEAT_MS/1000;
+
+    // Melody note
+    const [freq,beats,vol]=MEDIEVAL_MELODY[bgMelodyIdx%MEDIEVAL_MELODY.length];
+    playMedievalNote(freq, beats*beatDur*.9, vol, 0, 'triangle');
+
+    // Harmony (5th above, quieter)
+    playMedievalNote(freq*1.5, beats*beatDur*.8, vol*.4, 0, 'sine');
+
+    // Drone bass every 4 beats
+    if(bgBeat%4===0){
+      const drone=MEDIEVAL_DRONE[bgDroneIdx%MEDIEVAL_DRONE.length];
+      playMedievalNote(drone, beatDur*3.8, .03, 0, 'sawtooth');
+      // Add a quiet percussion hit
+      playNoise(.04,.08);
+      bgDroneIdx++;
+    }
+
+    bgMelodyIdx++;
+    bgBeat++;
+    bgMusicInterval=setTimeout(tick, beats*BEAT_MS);
+  }
+  tick();
+}
+
+function stopBgMusic(){
+  bgPlaying=false;
+  if(bgMusicInterval){clearTimeout(bgMusicInterval);bgMusicInterval=null;}
+}
+
+// ══════════════════════════════════════════════════
+// ════════════ ROCK FALL ANIMATION ═════════════════
+// ══════════════════════════════════════════════════
+function animateRocksFalling(rockSet, cb){
+  const bg=$('boardGrid');
+  if(!bg){cb();return;}
+
+  const rockList=[...rockSet];
+  let completed=0;
+  const total=rockList.length;
+  if(total===0){cb();return;}
+
+  // Board must have position:relative so rocks can be positioned relative to it
+  bg.style.position='relative';
+
+  rockList.forEach((cellIdx,i)=>{
+    const delay=i*220;
+
+    setTimeout(()=>{
+      const cell=bg.children[cellIdx];
+      if(!cell){completed++;if(completed===total)setTimeout(cb,300);return;}
+
+      // Get cell position relative to board grid
+      const cellRect=cell.getBoundingClientRect();
+      const bgRect=bg.getBoundingClientRect();
+      const cellLeft=cellRect.left-bgRect.left;
+      const cellTop=cellRect.top-bgRect.top;
+      const cellW=cellRect.width;
+      const cellH=cellRect.height;
+
+      // Create rock that falls from ABOVE the board, fixed to boardGrid coords
+      const rock=document.createElement('div');
+      rock.style.cssText=`
+        position:absolute;
+        font-size:3.5rem;
+        line-height:1;
+        z-index:50;
+        left:${cellLeft+cellW/2}px;
+        top:${-80}px;
+        transform:translateX(-50%) rotate(${Math.random()*30-15}deg);
+        pointer-events:none;
+        filter:drop-shadow(0 4px 8px rgba(0,0,0,.8));
+        transition:none;
+      `;
+      rock.textContent='🪨';
+      bg.appendChild(rock);
+
+      // Whistle sound during fall
+      playTone(300+Math.random()*100,'sawtooth',.12,.2);
+      playTone(200,'sine',.08,.1,.04);
+
+      // Animate: move from top:-80 to cellTop
+      requestAnimationFrame(()=>{
+        rock.style.transition='top .5s cubic-bezier(.4,0,.8,1.2), transform .5s ease-in';
+        rock.style.top=(cellTop+cellH/2-20)+'px';
+        rock.style.transform='translateX(-50%) rotate(0deg)';
+      });
+
+      setTimeout(()=>{
+        // IMPACT
+        playTone(55+Math.random()*25,'square',.3,.6);
+        playTone(80,'square',.2,.4,.03);
+        playNoise(.15,.5);
+        playTone(220,'sine',.12,.2,.08);
+
+        rock.remove();
+
+        // Show crack/dust burst flash
+        const burst=document.createElement('div');
+        burst.style.cssText=`position:absolute;left:${cellLeft}px;top:${cellTop}px;
+          width:${cellW}px;height:${cellH}px;z-index:49;pointer-events:none;
+          background:radial-gradient(circle,rgba(255,200,100,.7) 0%,rgba(255,150,50,.3) 40%,transparent 70%);
+          border-radius:8px;animation:dustBurst .35s ease-out forwards;`;
+        bg.appendChild(burst);
+        setTimeout(()=>burst.remove(),400);
+
+        // Place final rock in cell
+        cell.innerHTML='';
+        const rk=document.createElement('div');
+        rk.className='rock-cell';
+        rk.style.animation='rockLand .4s cubic-bezier(.34,1.56,.64,1)';
+        rk.textContent='🏰';
+        cell.appendChild(rk);
+
+        shakeNeighbors(cell,bg);
+        completed++;
+        if(completed===total) setTimeout(cb,400);
+      },520);
+
+    },delay);
+  });
+}
+
+function shakeNeighbors(cell, bg){
+  const idx=parseInt(cell.dataset.idx||'0');
+  [idx-1,idx+1,idx-4,idx+4].forEach(ni=>{
+    if(ni<0||ni>=16)return;
+    const nc=bg.children[ni];
+    if(!nc)return;
+    nc.style.animation='none';
+    requestAnimationFrame(()=>{nc.style.animation='rockShake .3s ease-out';});
+    setTimeout(()=>{nc.style.animation='';},350);
+  });
+  cell.style.animation='rockShake .25s ease-out';
+  setTimeout(()=>{cell.style.animation='';},300);
+}
+
+// shakeCell replaced by shakeNeighbors
+
+
+// ══════════════════════════════════════════════════
+// ════════════ TAB NAVIGATION ═════════════════════
+// ══════════════════════════════════════════════════
+const TABS=['story','battle','mini','packs','album','setup'];
+let currentTab='battle';
+
+function showMainUI(){
+  document.querySelectorAll('.screen').forEach(s=>{
+    if(s.id!=='battleScreen'&&s.id!=='miniScreen'&&s.id!=='prizeModal'
+       &&s.id!=='goOverlay'&&s.id!=='resultOverlay') s.classList.remove('active');
+  });
+  $('bottomNav').classList.add('visible');
+  switchTab('story',true);
+  startBgMusic();
+  // Story badge
+  const badge=$('storyBadge');
+  if(badge) badge.style.display=storyState.completedChapters.length===0?'block':'none';
+}
+
+function switchTab(tab, skipSound=false){
+  if(!skipSound) SFX.tabSwitch();
+  currentTab=tab;
+  TABS.forEach(t=>{
+    const el=$(('tab'+t.charAt(0).toUpperCase()+t.slice(1)));
+    const navEl=$('nav-'+t);
+    if(el) el.className=el.className.replace(' active','').replace('active','').trim()+(t===tab?' active':'');
+    if(navEl) navEl.className='nav-item'+(t===tab?' active':'');
+  });
+  if(tab==='story'){renderStoryTab();}
+  else if(tab==='battle'){renderBattleTab();}
+  else if(tab==='mini'){renderMiniTab();}
+  else if(tab==='packs'){renderPacksTab();}
+  else if(tab==='album'){renderAlbumTab();}
+  else if(tab==='setup'){/* setup renders itself */}
+  updateAllCoins();
+}
+
+function updateAllCoins(){
+  const v=STATE.coins;
+  ['coinsHome','coinsBattle','coinsMiniTab','coinsPacksTab','coinsAlbumTab','coinsStoryTab'].forEach(id=>{
+    const el=$(id); if(el) el.textContent=v;
+  });
+  // Also update battle card count
+  const bcc=$('battleCardCount');
+  if(bcc) bcc.textContent=CATALOG.filter(c=>STATE.owned[c.id]&&STATE.owned[c.id].count>0).length;
+  // Free pack badge
+  const badge=$('freePackBadge');
+  if(badge) badge.style.display=canOpenFreePack()?'block':'none';
+}
+function updateCoins(){updateAllCoins();}
+
+// ══ BATTLE TAB ══
+function renderBattleTab(){
+  const bcc=$('battleCardCount');
+  if(bcc) bcc.textContent=CATALOG.filter(c=>STATE.owned[c.id]&&STATE.owned[c.id].count>0).length;
+}
+
+// ══ MINI TAB ══
+const MINI_LIST=[
+  {id:'catch',icon:'🪣',name:'Atrapa Monedas',sub:'Recoge monedas que caen',rw:'15–55 🪙',col:'#FFD93D44'},
+  {id:'space',icon:'🚀',name:'Space Shooter',sub:'Destruye asteroides',rw:'20–70 🪙',col:'#6C5CE744'},
+  {id:'mole', icon:'🔨',name:'Whack-a-Mole',sub:'Golpea los topos',rw:'15–55 🪙',col:'#00CEC944'},
+  {id:'dodge',icon:'⚡',name:'Esquiva',sub:'Evita obstáculos',rw:'15–60 🪙',col:'#FD79A844'},
+];
+function renderMiniTab(){
+  const grid=$('miniGrid'); if(!grid)return; grid.innerHTML='';
+  MINI_LIST.forEach(m=>{
+    const d=document.createElement('div'); d.className='mini-card'; d.style.borderColor=m.col;
+    d.innerHTML=`<div style="font-size:2.5rem;margin-bottom:.4rem">${m.icon}</div>
+      <div style="font-weight:800;font-size:.86rem;font-family:'Fredoka One',cursive">${m.name}</div>
+      <div style="font-size:.68rem;color:var(--muted);margin:.15rem 0">${m.sub}</div>
+      <div style="font-size:.72rem;color:var(--y);font-weight:700">${m.rw}</div>`;
+    d.onclick=()=>{SFX.tap();openMini(m.id);};
+    grid.appendChild(d);
+  });
+}
+
+// ══ PACKS TAB ══
+const PACK_DEFS=[
+  {id:'e1',cls:'env-basic', icon:'📨',name:'Básico',  price:0,  free:true, color:'#2a2818',border:'#FFD93D44'},
+  {id:'e2',cls:'env-normal',icon:'📩',name:'Normal',  price:20, color:'#1a1430',border:'#6C5CE744'},
+  {id:'e3',cls:'env-premium',icon:'💌',name:'Premium',price:45, color:'#0a2428',border:'#00CEC944',boost:true},
+  {id:'e4',cls:'env-special',icon:'💎',name:'Especial',price:80,color:'#2a0e1e',border:'#FD79A844',guaranteed:'rare'},
+];
+function renderPacksTab(){
+  const grid=$('packsGrid'); if(!grid)return; grid.innerHTML='';
+  // Check free daily pack
+  const freeEl=$('freeDailyPack');
+  const timer=$('freePackTimer');
+  if(freeEl){
+    const can=canOpenFreePack();
+    freeEl.style.opacity=can?'1':'.5';
+    freeEl.style.pointerEvents=can?'auto':'none';
+    if(timer) timer.textContent=can?'¡Disponible ahora!':'Ya usaste el pull gratuito de hoy';
+  }
+  PACK_DEFS.forEach(env=>{
+    const locked=!env.free&&STATE.coins<env.price;
+    const d=document.createElement('div');
+    d.className='pack-card';
+    d.style.cssText=`background:${env.color};border-color:${env.border};${locked?'opacity:.4;pointer-events:none':''}`;
+    d.innerHTML=`<span class="pack-icon">${env.icon}</span>
+      <div class="pack-name" style="color:${env.border.replace('44','')}">${env.name}</div>
+      <div class="pack-price" style="color:${env.border.replace('44','')}">${env.free?'🎁 Gratis':env.price+' 🪙'}</div>
+      <div class="pack-count">3 cartas</div>`;
+    if(!locked) d.onclick=()=>buyAndOpenPack(env);
+    grid.appendChild(d);
+  });
+}
+
+// ── FREE 10-CARD PULL ──
+function canOpenFreePack(){
+  const last=STATE.lastFreePull||0;
+  // Available always (no cooldown as requested)
+  return true;
+}
+function openFreePack(){
+  SFX.openPack();
+  STATE.lastFreePull=Date.now();
+  const cards=[];
+  for(let i=0;i<10;i++){
+    const card=drawCardDef(false,null);
+    if(!card)continue;
+    if(!STATE.owned[card.id])STATE.owned[card.id]={count:0};
+    STATE.owned[card.id].count++;
+    cards.push({card,isNew:STATE.owned[card.id].count===1});
+  }
+  STATE.coins+=5; // small bonus for free pull
+  saveState();updateAllCoins();
+  showPackReveal(cards,'🎁 Pull de 10 Cartas — ¡Gratis!');
+}
+
+// ── BUY PACK (3 cards) ──
+function buyAndOpenPack(env){
+  if(!CATALOG.length){alert('Primero crea tu colección');return;}
+  if(!env.free&&STATE.coins<env.price){alert('¡Necesitas más monedas!');return;}
+  SFX.openPack();
+  if(!env.free)STATE.coins-=env.price;
+  const cards=[];
+  for(let i=0;i<3;i++){
+    const card=drawCardDef(env.boost,env.guaranteed);
+    if(!card)continue;
+    if(!STATE.owned[card.id])STATE.owned[card.id]={count:0};
+    STATE.owned[card.id].count++;
+    let bonus=0;
+    if(STATE.owned[card.id].count>1)bonus={legendary:15,epic:8,rare:4,uncommon:2,common:1}[card.rarity]||1;
+    if(bonus)STATE.coins+=bonus;
+    cards.push({card,isNew:STATE.owned[card.id].count===1,bonus});
+  }
+  saveState();updateAllCoins();
+  const hasEpic=cards.some(c=>c.card.rarity==='epic'||c.card.rarity==='legendary');
+  if(hasEpic){SFX.legendary();confetti();}
+  showPackReveal(cards, env.icon+' Sobre '+env.name);
+}
+
+function showPackReveal(cards,title){
+  $('packRevealTitle').textContent=title;
+  const row=$('packRevealCards'); row.innerHTML='';
+  // Show max 10 at a time in rows
+  const toShow=cards.slice(0,10);
+  toShow.forEach((c,i)=>{
+    const slot=document.createElement('div'); slot.className='pack-card-slot';
+    slot.style.animationDelay=(i*.15)+'s';
+    const inst=makeInstance(c.card);
+    const el=buildCard(inst,{size:c.card.rarity==='legendary'?110:96});
+    slot.appendChild(el);
+    if(c.isNew){const b=document.createElement('div');b.style.cssText='text-align:center;font-size:.6rem;font-weight:800;color:#55EFC4;margin-top:.2rem';b.textContent='¡NUEVA!';slot.appendChild(b);}
+    else if(c.bonus){const b=document.createElement('div');b.style.cssText='text-align:center;font-size:.6rem;font-weight:800;color:var(--y);margin-top:.2rem';b.textContent='+'+c.bonus+'🪙';slot.appendChild(b);}
+    row.appendChild(slot);
+  });
+  const hasLeg=cards.some(c=>c.card.rarity==='legendary');
+  const hasEpic=cards.some(c=>c.card.rarity==='epic');
+  $('packRevealSub').textContent=hasLeg?'🌟 ¡Legendaria obtenida!':hasEpic?'✨ ¡Épica obtenida!':'';
+  $('packReveal').classList.add('show');
+  if(hasLeg){SFX.legendary();confetti();}
+  else if(hasEpic){SFX.epic();confetti();}
+}
+function closePackReveal(){
+  $('packReveal').classList.remove('show');
+  if(currentTab==='packs')renderPacksTab();
+}
+
+// ══ ALBUM TAB ══
+const RARITY_ORDER_ALBUM=['legendary','epic','rare','uncommon','common'];
+const RARITY_LABELS_ALBUM={
+  legendary:{label:'⭐ Legendaria',color:'#FFD93D'},
+  epic:{label:'💜 Épica',color:'#a29bfe'},
+  rare:{label:'💙 Rara',color:'#74b9ff'},
+  uncommon:{label:'💚 Poco Común',color:'#55EFC4'},
+  common:{label:'⬜ Común',color:'#9999bb'},
+};
+// AI preset cards shown as bonus
+const ALL_CATALOG_WITH_AI=()=>[...CATALOG,...AI_PRESET.map(c=>({...c,isAI:true}))];
+
+function renderAlbumTab(){
+  const content=$('albumContent'); if(!content)return;
+  content.innerHTML='';
+  const all=ALL_CATALOG_WITH_AI();
+  let totalOwned=0;
+  const byRarity={};
+  RARITY_ORDER_ALBUM.forEach(r=>byRarity[r]=[]);
+  all.forEach(card=>{
+    if(byRarity[card.rarity]) byRarity[card.rarity].push(card);
+  });
+  RARITY_ORDER_ALBUM.forEach(rarity=>{
+    const cards=byRarity[rarity];
+    if(!cards.length)return;
+    const sec=document.createElement('div'); sec.className='album-section';
+    const lbl=RARITY_LABELS_ALBUM[rarity];
+    const rlbl=document.createElement('div'); rlbl.className='album-rarity-label';
+    rlbl.style.color=lbl.color; rlbl.textContent=lbl.label;
+    sec.appendChild(rlbl);
+    const grid=document.createElement('div'); grid.className='album-grid';
+    cards.forEach(card=>{
+      const owned=STATE.owned[card.id];
+      const isOwned=owned&&owned.count>0;
+      if(isOwned)totalOwned++;
+      const slot=document.createElement('div'); slot.className='album-slot';
+      const inst=makeInstance(card);
+      const el=buildCard(inst,{size:88,locked:!isOwned});
+      slot.appendChild(el);
+      if(isOwned){
+        const chk=document.createElement('div');chk.className='owned-check';chk.textContent='✓';slot.appendChild(chk);
+        if(owned.count>1){const cnt=document.createElement('div');cnt.className='count-badge';cnt.textContent='×'+owned.count;slot.appendChild(cnt);}
+      }
+      grid.appendChild(slot);
+    });
+    sec.appendChild(grid);
+    content.appendChild(sec);
+  });
+  // Update header
+  const pct=all.length?Math.round(totalOwned/all.length*100):0;
+  const bar=$('albumBar'); if(bar)bar.style.width=pct+'%';
+  const pctEl=$('albumPct'); if(pctEl)pctEl.textContent=totalOwned+' / '+all.length+' cartas ('+pct+'%)';
+}
+
+// ══════════════════════════════════════════════════
+// ════════ BATTLE INTRO ANIMATION ══════════════════
+// ══════════════════════════════════════════════════
+function openBattleIntro(mode){
+  SFX.clash();
+  const intro=$('battleIntro');
+  intro.classList.add('show');
+  // Reset sword animation
+  intro.querySelector('.sword-left').style.animation='none';
+  intro.querySelector('.sword-right').style.animation='none';
+  intro.querySelector('h1').style.animation='none';
+  intro.querySelector('.clash-flash').style.animation='none';
+  setTimeout(()=>{
+    intro.querySelector('.sword-left').style.animation='swordLeft 1s cubic-bezier(.22,1,.36,1) forwards';
+    intro.querySelector('.sword-right').style.animation='swordRight 1s cubic-bezier(.22,1,.36,1) forwards';
+    intro.querySelector('.clash-flash').style.animation='clashFlash .4s .9s ease-out forwards';
+    intro.querySelector('h1').style.animation='introTitle .5s 1.1s ease-out forwards';
+  },50);
+  setTimeout(()=>{
+    intro.classList.remove('show');
+    stopBgMusic();
+    // Open battle screen
+    $('bottomNav').classList.remove('visible');
+    showScreen('battleScreen');
+    if(mode==='online') openOnlineLobby();
+    else startBattleFlow(mode);
+    SFX.menuEnter();
+    startCombatMusic();
+  },2000);
+}
+
+function exitBattle(){
+  stopMini();
+  stopCombatMusic();
+  $('bottomNav').classList.add('visible');
+  switchTab('battle');
+  startBgMusic();
+}
+function goHome(){
+  stopMini();
+  $('bottomNav').classList.add('visible');
+  // Hide mini/battle screens
+  ['battleScreen','miniScreen'].forEach(id=>{const el=$(id);if(el)el.classList.remove('active');});
+  switchTab(currentTab||'battle');
+  startBgMusic();
+}
+
+// openMini is patched inline below — no wrapper needed
+
+// ══════════════════════════════════════════════════
+// ════════ OVERRIDE showHome / showSetup ═══════════
+// ══════════════════════════════════════════════════
+function showHome(){
+  ensureDemoCards();
+  showMainUI();
+}
+function showSetup(){switchTab('setup');}
+
+function renderHome(){updateAllCoins();}
+
+// endMini patched inline
+
+// startMini patched inline
+
+// playBattleAnimations patched inline
+
+// ══════════════════════════════════════════════════
+// ═════════════ INIT ═══════════════════════════════
+// ══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
+// ════════════ STORY MODE ══════════════════════════
+// ══════════════════════════════════════════════════
+
+// ── CHARACTERS ──
+const CHARS = {
+  aldric: { name:'SIR ALDRIC', emoji:'⚔️🧔', color:'#FFD93D', side:'left'  },
+  player: { name:'TÚ',         emoji:'🧙',    color:'#00CEC9', side:'right' },
+  shadow: { name:'EL LADRÓN',  emoji:'🦹',    color:'#ff4444', side:'left'  },
+  narrator:{ name:'NARRADOR',  emoji:'📜',    color:'#a29bfe', side:'left'  },
+};
+
+// ── 5 CHAPTERS ──
+const CHAPTERS = [
+  {
+    id:0, title:'El Despertar', icon:'🌅', reward:30,
+    intro:[
+      {char:'narrator', text:'En el reino de Arcanis, las Cartas de Poder son la fuente de toda magia. Un día amaneciste sin recuerdos... y sin tus cartas.'},
+      {char:'aldric',   text:'¡Joven mago! Por fin despiertas. Soy Sir Aldric, caballero del reino. Alguien ha robado tus cartas mágicas esta noche.'},
+      {char:'player',   text:'¿Mis cartas? ¿Quién haría algo así?'},
+      {char:'aldric',   text:'El Ladrón de Cartas... una sombra que se alimenta del poder mágico ajeno. Pero primero, debo enseñarte a luchar. ¿Listo para tu primera batalla?'},
+    ],
+    tutorialSteps:[
+      {trigger:'start',     tip:'Selecciona una carta de tu mano tocándola', highlight:'hand-panel'},
+      {trigger:'selected',  tip:'Ahora toca una celda vacía del tablero para colocarla', highlight:'board-grid'},
+      {trigger:'placed',    tip:'¡Bien! Las flechas amarillas indican por dónde ataca tu carta', highlight:null},
+    ],
+    mid:[
+      {char:'aldric', text:'¡Bien hecho! Las flechas son tu arma. Si apuntan a una carta enemiga con flecha de vuelta... ¡es batalla!'},
+    ],
+    outro:[
+      {char:'aldric', text:'¡Excelente! Empiezas a recordar tu poder. Las cartas responden a ti.'},
+      {char:'player', text:'Siento algo... como si la magia fluyera de nuevo por mis manos.'},
+      {char:'aldric', text:'Pronto la necesitarás. El Ladrón no está lejos. Sígueme al siguiente bastión.'},
+    ],
+    outroLose:[
+      {char:'aldric', text:'No te preocupes. Hasta el mejor caballero cae en su primer torneo. ¡Vuelve a intentarlo!'},
+    ],
+    difficulty:'easy', ai_deck:['demo_4','demo_8','demo_1','demo_6','demo_2'],
+    resultWin: 'Has superado tu primer entrenamiento. Sir Aldric asiente satisfecho. +30 monedas.',
+    resultLose:'Las cartas aún no obedecen del todo. Practica más.',
+  },
+  {
+    id:1, title:'La Taberna del Cuervo', icon:'🍺', reward:50,
+    intro:[
+      {char:'narrator', text:'En la Taberna del Cuervo, los mercaderes de cartas se reúnen. Aquí viste al Ladrón por última vez.'},
+      {char:'aldric',   text:'Silencio, joven. El tabernero conoce a todos los que pasan. Desafíale y demostrará que mereces su respeto.'},
+      {char:'shadow',   text:'Jajaja... así que el mago sin memoria quiere hablar. Primero demuestra que puedes ganar una partida.'},
+      {char:'player',   text:'Acepto el desafío. Y cuando gane, me dirás dónde están mis cartas.'},
+    ],
+    tutorialSteps:[
+      {trigger:'start',    tip:'¡Recuerda! Las flechas VERDES atacan. Las GRISES no hacen nada', highlight:null},
+      {trigger:'battle',   tip:'Cuando dos flechas se encuentran, hay BATALLA. Gana quien más puntos tenga', highlight:null},
+      {trigger:'chain',    tip:'¡COMBO! Si ganas una batalla y hay cartas conectadas, ¡las conquistas todas!', highlight:null},
+    ],
+    mid:[
+      {char:'shadow',  text:'Mmm... mejor de lo esperado. Pero aún no has visto nada, maguito.'},
+      {char:'aldric',  text:'Ignórale. Concéntrate en las flechas conectadas. Los combos son tu mejor arma.'},
+    ],
+    outro:[
+      {char:'shadow',  text:'(gruñido)... Está bien. El Ladrón estuvo aquí. Se fue hacia el Bosque de las Sombras.'},
+      {char:'player',  text:'El Bosque de las Sombras... suena peligroso.'},
+      {char:'aldric',  text:'Lo es. Pero ahora tienes experiencia. Y yo estaré contigo. ¡Adelante!'},
+    ],
+    outroLose:[
+      {char:'shadow',  text:'Hah. Demasiado débil. Vuelve cuando seas alguien, maguito.'},
+      {char:'aldric',  text:'No te rindas. Cada derrota es una lección. ¡Vuelve al ataque!'},
+    ],
+    difficulty:'easy', ai_deck:['demo_4','demo_8','demo_6','demo_2','demo_7'],
+    resultWin: 'El tabernero habló. La pista lleva al Bosque de las Sombras. +50 monedas.',
+    resultLose:'La taberna se ríe de ti. Aún no estás listo. Practica más.',
+  },
+  {
+    id:2, title:'El Bosque de las Sombras', icon:'🌲', reward:70,
+    intro:[
+      {char:'narrator', text:'El Bosque de las Sombras. Los árboles no dejan pasar la luz. Aquí, las cartas cobran vida propia.'},
+      {char:'aldric',   text:'Escucha bien. En este bosque, las piedras pueden aparecer en cualquier parte. Adapta tu estrategia.'},
+      {char:'player',   text:'Veo sombras moviéndose entre los árboles... ¿Son guardianes del Ladrón?'},
+      {char:'aldric',   text:'Guardabosques corrompidos. Su líder guarda el primer grupo de tus cartas robadas. ¡Derrótale!'},
+    ],
+    tutorialSteps:[
+      {trigger:'start',   tip:'Las piedras 🏰 bloquean casillas. ¡Planifica bien tu posición!', highlight:null},
+      {trigger:'placed',  tip:'Rodear al enemigo con tus cartas aumenta tus opciones de combo', highlight:null},
+    ],
+    mid:[
+      {char:'player',  text:'¡Las piedras están en todos lados! Es difícil moverse.'},
+      {char:'aldric',  text:'Usa las piedras a tu favor. El enemigo también está limitado por ellas.'},
+    ],
+    outro:[
+      {char:'aldric',  text:'¡Victoria! Y mira... entre los árboles... ¡tus cartas brillan!'},
+      {char:'player',  text:'(recoge 3 cartas resplandecientes) Siento su poder volver a mí...'},
+      {char:'aldric',  text:'Solo son tres de las robadas. El Ladrón huyó a las Ruinas del Norte. ¡Tras él!'},
+    ],
+    outroLose:[
+      {char:'aldric',  text:'El bosque es traicionero. Reagrúpate y vuelve. Las cartas te esperan.'},
+    ],
+    difficulty:'medium', ai_deck:['demo_1','demo_7','demo_3','demo_9','demo_5'],
+    resultWin: '¡Recuperaste 3 cartas! El rastro lleva a las Ruinas del Norte. +70 monedas.',
+    resultLose:'El bosque te venció. Vuelve más fuerte.',
+  },
+  {
+    id:3, title:'Las Ruinas del Norte', icon:'🏚️', reward:100,
+    intro:[
+      {char:'narrator', text:'Las Ruinas del Norte. Un castillo olvidado que el Ladrón usa como guarida. El viento trae ecos de magia oscura.'},
+      {char:'shadow',   text:'¿Llegaste hasta aquí? Impresionante. Pero mis mejores cartas son las que tengo yo.'},
+      {char:'player',   text:'¡Devuélveme mis cartas! Son parte de mí, ¡no tuyas!'},
+      {char:'shadow',   text:'Tendrás que ganármelas. Y esta vez... no seré indulgente.'},
+      {char:'aldric',   text:'Cuidado. Es más fuerte aquí. Usa todo lo que has aprendido.'},
+    ],
+    tutorialSteps:[
+      {trigger:'start',  tip:'El rival es fuerte. Guarda tus mejores cartas para el momento decisivo', highlight:null},
+      {trigger:'lose',   tip:'Si pierdes una batalla, tu carta pasa al enemigo. ¡Protege las posiciones clave!', highlight:null},
+    ],
+    mid:[
+      {char:'shadow',   text:'¿Ves? Tus cartas son mías ahora. Rínde...'},
+      {char:'aldric',   text:'¡No escuches sus burlas! Mantén la calma y el tablero.'},
+    ],
+    outro:[
+      {char:'shadow',   text:'Imposible... ¡No puede ser! ¡Mis cartas!'},
+      {char:'player',   text:'(recupera más cartas) ¡Sí! Casi las tengo todas.'},
+      {char:'shadow',   text:'(huye) Esto no ha terminado... Te veré en la Torre Oscura...'},
+      {char:'aldric',   text:'Huyó. Pero sabemos a dónde va. La Torre Oscura. La batalla final te espera.'},
+    ],
+    outroLose:[
+      {char:'shadow',   text:'Sabía que no estabas listo. Vuelve cuando seas un mago de verdad.'},
+      {char:'aldric',   text:'Estuviste cerca. El Ladrón es fuerte pero tiene debilidades. Inténtalo de nuevo.'},
+    ],
+    difficulty:'medium', ai_deck:['demo_5','demo_10','demo_9','demo_3','demo_7'],
+    resultWin: '¡El Ladrón huye! Tus cartas vuelven. Solo queda la batalla final. +100 monedas.',
+    resultLose:'Las ruinas son demasiado poderosas aún. Vuelve más fuerte.',
+  },
+  {
+    id:4, title:'La Torre Oscura — Final', icon:'🗼', reward:200,
+    intro:[
+      {char:'narrator', text:'La Torre Oscura. El corazón del poder del Ladrón. Aquí guarda la última y más poderosa de tus cartas: la Carta Maestra.'},
+      {char:'aldric',   text:'Joven mago, has llegado lejos. Pero esta es la batalla más difícil. El Ladrón usará tu propia magia contra ti.'},
+      {char:'player',   text:'Estoy listo, Sir Aldric. He aprendido mucho en este viaje.'},
+      {char:'shadow',   text:'Bienvenido a tu tumba, mago. Aquí termina tu historia... ¡y comienza la mía!'},
+      {char:'aldric',   text:'¡Ahora! ¡Por el reino de Arcanis!'},
+    ],
+    tutorialSteps:[
+      {trigger:'start',  tip:'¡BATALLA FINAL! Usa todo lo aprendido. Combos, posición, flechas. ¡Lucha!', highlight:null},
+    ],
+    mid:[
+      {char:'shadow',   text:'(jadeando) ¿Cómo... cómo puedes ser tan fuerte?'},
+      {char:'aldric',   text:'¡Sigue! ¡Está cediendo!'},
+    ],
+    outro:[
+      {char:'shadow',   text:'(se desvanece) Mis... mis cartas... todo mi poder...'},
+      {char:'player',   text:'(sostiene la Carta Maestra brillando) La recuperé. Todas mis cartas han vuelto.'},
+      {char:'aldric',   text:'Lo has conseguido, joven mago. Arcanis está a salvo. Las cartas volverán a brillar para ti.'},
+      {char:'narrator', text:'Y así, el mago sin memoria recuperó no solo sus cartas... sino también su destino. FIN.'},
+    ],
+    outroLose:[
+      {char:'shadow',   text:'¿Lo ves? ¡NUNCA podrás derrotarme! ¡El poder es mío!'},
+      {char:'aldric',   text:'Todavía no. Pero cada derrota te hace más sabio. ¡La victoria llegará!'},
+    ],
+    difficulty:'hard', ai_deck:['demo_5','demo_10','demo_3','demo_9','demo_7'],
+    resultWin: '🎉 ¡SAGA COMPLETADA! El Ladrón fue derrotado. Arcanis es libre. +200 monedas + carta legendaria.',
+    resultLose:'El Ladrón es muy poderoso. Entrena más y vuelve. ¡Tú puedes!',
+  },
+];
+
+// ── STORY STATE ──
+let storyState = {
+  currentChapter: 0,
+  completedChapters: [],
+};
+function loadStoryState(){
+  try{const s=JSON.parse(localStorage.getItem('ewd_story')||'{}');
+    if(s.currentChapter!=null) storyState=s;}catch(e){}
+}
+function saveStoryState(){localStorage.setItem('ewd_story',JSON.stringify(storyState));}
+loadStoryState();
+
+// ── DIALOG ENGINE ──
+let dialogQueue=[];
+let dialogIdx=0;
+let dialogTyping=null;
+let dialogOnDone=null;
+let tutorialSteps=[];
+let tutorialStepIdx=0;
+let storyChapterId=null;
+let highlightEl=null;
+
+function showDialogs(dialogs, onDone){
+  dialogQueue=dialogs;
+  dialogIdx=0;
+  dialogOnDone=onDone;
+  $('dialogOverlay').classList.add('show');
+  showDialogAt(0);
+}
+
+function showDialogAt(idx){
+  if(idx>=dialogQueue.length){
+    $('dialogOverlay').classList.remove('show');
+    if(dialogOnDone) dialogOnDone();
+    return;
+  }
+  const d=dialogQueue[idx];
+  const char=CHARS[d.char]||CHARS.narrator;
+  $('dialogChar').textContent=char.emoji;
+  $('dialogSpeaker').textContent=char.name;
+  $('dialogSpeaker').style.color=char.color;
+  const box=$('dialogBox');
+  box.className='dialog-box'+(char.side==='right'?' player-side':'');
+  // Typewriter effect
+  const textEl=$('dialogText');
+  textEl.innerHTML='';
+  if(dialogTyping){clearInterval(dialogTyping);dialogTyping=null;}
+  let i=0;
+  const txt=d.text;
+  // Play typing sound
+  SFX.tap();
+  dialogTyping=setInterval(()=>{
+    if(i<txt.length){
+      textEl.textContent=txt.slice(0,i+1);
+      i++;
+      if(i%12===0) playTone(400+Math.random()*200,'sine',.04,.04);
+    } else {
+      clearInterval(dialogTyping); dialogTyping=null;
+      textEl.innerHTML=txt+'<span class="cursor"></span>';
+    }
+  },30);
+}
+
+function advanceDialog(){
+  if(dialogTyping){
+    // Skip typewriter — show full text immediately
+    clearInterval(dialogTyping); dialogTyping=null;
+    const d=dialogQueue[dialogIdx];
+    $('dialogText').innerHTML=d.text+'<span class="cursor"></span>';
+    return;
+  }
+  dialogIdx++;
+  showDialogAt(dialogIdx);
+}
+
+// ── TUTORIAL SYSTEM ──
+function initTutorialSteps(steps){
+  tutorialSteps=steps||[];
+  tutorialStepIdx=0;
+}
+function fireTutorialTrigger(trigger){
+  if(!tutorialSteps.length) return;
+  const step=tutorialSteps.find((s,i)=>s.trigger===trigger&&i>=tutorialStepIdx);
+  if(!step) return;
+  tutorialStepIdx=tutorialSteps.indexOf(step)+1;
+  showTutorialTip(step.tip, step.highlight);
+}
+function showTutorialTip(tip, highlightId){
+  removeTutorialHighlight();
+  document.querySelectorAll('.tutorial-tip').forEach(e=>e.remove());
+  const tipEl=document.createElement('div');
+  tipEl.className='tutorial-tip';
+  // Position at bottom of screen above hands, never covering board
+  tipEl.style.cssText='position:fixed;bottom:6rem;left:50%;transform:translateX(-50%);z-index:141;white-space:normal;width:90%;max-width:320px;';
+  tipEl.textContent=tip;
+  document.body.appendChild(tipEl);
+  // Auto-remove after 4s — player can still interact freely
+  setTimeout(()=>tipEl.remove(), 4000);
+}
+function removeTutorialHighlight(){
+  if(highlightEl){highlightEl.remove();highlightEl=null;}
+}
+
+// ── CHAPTER MAP ──
+function renderStoryTab(){
+  // Generate stars
+  const starsEl=$('storyStars');
+  if(starsEl&&!starsEl.children.length){
+    for(let i=0;i<60;i++){
+      const s=document.createElement('div'); s.className='story-star';
+      const size=1+Math.random()*2;
+      s.style.cssText=`width:${size}px;height:${size}px;left:${Math.random()*100}%;top:${Math.random()*100}%;animation-delay:${Math.random()*3}s;animation-duration:${2+Math.random()*3}s;`;
+      starsEl.appendChild(s);
+    }
+  }
+  const path=$('chapterPath'); if(!path) return;
+  path.innerHTML='';
+  CHAPTERS.forEach((ch,i)=>{
+    const done=storyState.completedChapters.includes(ch.id);
+    const isCurrent=i===storyState.currentChapter&&!done;
+    const locked=i>storyState.currentChapter&&!done;
+    const node=document.createElement('div');
+    let cls='chapter-node';
+    if(done) cls+=' completed';
+    else if(isCurrent) cls+=' current';
+    else if(locked) cls+=' locked';
+    else cls+=' unlocked';
+    node.className=cls;
+    node.innerHTML=`
+      <div class="chapter-icon-wrap">${done?'✅':locked?'🔒':ch.icon}</div>
+      <div class="chapter-info">
+        <div class="chapter-num">Capítulo ${i+1}</div>
+        <div class="chapter-title">${ch.title}</div>
+        <div class="chapter-status">${done?'Completado ✓':isCurrent?'¡Disponible!':locked?'Bloqueado':'Disponible'}</div>
+      </div>
+      <div style="color:var(--y);font-weight:800;font-size:.8rem">+${ch.reward}🪙</div>`;
+    if(!locked) node.onclick=()=>startChapter(i);
+    path.appendChild(node);
+  });
+  $('storyProgress').textContent=storyState.completedChapters.length;
+  updateAllCoins();
+}
+
+// ── START CHAPTER ──
+function startChapter(idx){
+  storyChapterId=idx;
+  const ch=CHAPTERS[idx];
+  SFX.select();
+  // Show intro dialogs then start battle
+  showDialogs(ch.intro, ()=>{
+    initTutorialSteps(ch.tutorialSteps);
+    launchStoryBattle(ch);
+  });
+}
+
+function launchStoryBattle(ch){
+  stopBgMusic();
+  startCombatMusic();
+  battleMode='story';
+  const aiDefs=ch.ai_deck.map(id=>DEMO_CARDS.find(c=>c.id===id)||DEMO_CARDS[0]);
+  redInsts=aiDefs.map(d=>makeInstance(d));
+  const owned=ownedCards();
+  const pool=owned.length>=5?owned:DEMO_CARDS;
+  blueInsts=pool.slice(0,5).map(d=>makeInstance(d));
+  $('bottomNav').classList.remove('visible');
+  showScreen('battleScreen');
+  $('modePicker').style.display='none';
+  $('deckScreen').style.display='none';
+  // Story mode: player (blue) ALWAYS goes first for tutorial clarity
+  // Override initBattle's random first-turn by forcing blue after init
+  _storyForceBlueFirst=true;
+  initBattle();
+  // Fire first tutorial step after rocks fall
+  setTimeout(()=>fireTutorialTrigger('start'),2800);
+}
+let _storyForceBlueFirst=false;
+
+// ── HOOK STORY INTO BATTLE EVENTS ──
+// Fire tutorial triggers at key moments
+// placeCard story hook — patched inline in placeCard below
+
+// ── STORY END BATTLE ──
+function endStoryBattle(win){
+  const ch=CHAPTERS[storyChapterId];
+  stopCombatMusic();
+  startBgMusic();
+  const outDialogs=win?ch.outro:ch.outroLose;
+  showDialogs(outDialogs,()=>{
+    showChapterResult(win, ch);
+  });
+}
+
+function showChapterResult(win, ch){
+  const res=$('chapterResult');
+  res.className='chapter-result '+(win?'win-result':'lose-result');
+  $('chapterResultIcon').textContent=win?'🏆':'💔';
+  $('chapterResultTitle').textContent=win?'¡Misión completada!':'Misión fallida';
+  $('chapterResultStars').textContent=win?'⭐⭐⭐':'⭐';
+  $('chapterResultText').textContent=win?ch.resultWin:ch.resultLose;
+  if(win){
+    STATE.coins+=ch.reward;
+    if(!storyState.completedChapters.includes(ch.id)){
+      storyState.completedChapters.push(ch.id);
+      storyState.currentChapter=Math.min(ch.id+1, CHAPTERS.length-1);
+    }
+    saveStoryState(); saveState(); updateAllCoins();
+    confetti();
+    // Last chapter — give legendary demo card
+    if(ch.id===4&&!STATE.owned['demo_5']){
+      STATE.owned['demo_5']={count:1}; saveState();
+    }
+  }
+  res.classList.add('show');
+}
+
+function closeChapterResult(){
+  $('chapterResult').classList.remove('show');
+  $('bottomNav').classList.add('visible');
+  switchTab('story');
+}
+
+// ── PATCH endBattle TO HANDLE STORY MODE ──
+// We override the endBattle call from within placeCard/aiPlay
+// by checking battleMode==='story'
+// endBattle story mode — handled via patch inside endBattle itself
+
+// ── Story badge shown in showMainUI (no wrapper needed — renderStoryTab handles it) ──
+
+
+// Unlock audio on first tap
+document.addEventListener('touchstart',()=>{try{getAudio();}catch(e){}},{once:true});
+document.addEventListener('click',()=>{try{getAudio();}catch(e){}},{once:true});
+
+// Always start at main menu — demo cards used if no catalog
+ensureDemoCards();
+showMainUI();
 </script>
 </body>
 </html>
